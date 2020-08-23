@@ -1,0 +1,57 @@
+
+<!doctype html>
+<html lang="en">
+
+<!------------------------------------------------------------------
+        H E A D
+  ------------------------------------------------------------------>
+<head>
+    <title>WebGL Example</title>
+    <meta charset="utf-8">
+
+    <style>
+        body {
+            margin: 0;
+            background-color: white;
+        }
+        canvas {
+            display: block;  /* prevents scrollbar */
+            width:  100vw;
+            height: 100vh;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose"></script>
+
+    <!------------------------------------------------------------------------------------------
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.2.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@2.2.0/dist/tf-backend-wasm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose@0.0.6"></script>
+    --------------------------------------------------------------------------------------------->
+
+    <script type="text/javascript" src="../common/util_shader.js"></script>
+    <script type="text/javascript" src="../common/util_matrix.js"></script>
+    <script type="text/javascript" src="../common/util_texture.js"></script>
+    <script type="text/javascript" src="../common/util_render2d.js"></script>
+    <script type="text/javascript" src="../common/util_debugstr.js"></script>
+    <script type="text/javascript" src="../common/util_pmeter.js"></script>
+    <script type="text/javascript" src="../third_party/stats.min.js"></script>
+    <script type="text/javascript" src="shapes.js"></script>
+    <script type="text/javascript" src="render_handpose.js"></script>
+    <script type="text/javascript" src="webgl_main.js"></script>
+</head>
+
+<!------------------------------------------------------------------
+        B O D Y
+  ------------------------------------------------------------------>
+<body onload="startWebGL();">
+    <center>
+    <canvas id="glcanvas"></canvas>
+    </center>
+    <div id="debug_log"></div>
+</body>
+
+
+</html>

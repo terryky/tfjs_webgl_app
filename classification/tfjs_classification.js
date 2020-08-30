@@ -33,6 +33,14 @@ async function init_tfjs_classification ()
     s_tensor_output = tfjs_get_tensor_by_name (s_model, 1, "module_apply_default/MobilenetV1/Logits/SpatialSqueeze");
 }
 
+function get_classification_input_dims ()
+{
+    return {
+        w: s_tensor_input.shape[2],
+        h: s_tensor_input.shape[1]
+    };
+}
+
 
 
 /* -------------------------------------------------- *
@@ -76,18 +84,21 @@ async function getTopKClasses (logits, topK)
 
 function exec_tfjs (img)
 {
+    let w = s_tensor_input.shape[2];
+    let h = s_tensor_input.shape[1];
+
     let logits = tf.tidy(() =>
     {
-        img = tf.browser.fromPixels(img);
+        img_tensor1d = tf.tensor1d(img);
+        img_tensor = img_tensor1d.reshape([h, w, 3]);
 
         // normalize [0, 255] to [0, 1].
         let min = 0;
         let max = 1;
-        normalized = img.toFloat().mul((max - min)/255.0).add(min);
+        normalized = img_tensor.toFloat().mul((max - min)/255.0).add(min);
 
         // resize, reshape
-        let resized = tf.image.resizeBilinear(normalized, [224, 224], true);
-        let batched = resized.reshape([-1, 224, 224, 3]);
+        let batched = normalized.reshape([-1, w, h, 3]);
 
         let logits;
         if (false)

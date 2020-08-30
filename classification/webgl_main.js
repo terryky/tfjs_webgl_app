@@ -5,6 +5,8 @@
 //tf.setBackend('wasm').then(() => startWebGL());
 
 let s_debug_log;
+let s_rtarget_main;
+let s_rtarget_feed;
 
 function init_stats ()
 {
@@ -17,6 +19,29 @@ function init_stats ()
     return stats;
 }
 
+
+function generate_input_image (gl, texid, win_w, win_h)
+{
+    let dims = get_classification_input_dims ();
+    let buf_rgba = new Uint8Array (dims.w * dims.h * 4);
+    let buf_rgb  = new Uint8Array (dims.w * dims.h * 3);
+
+
+    GLUtil.set_render_target (gl, s_rtarget_feed);
+    gl.clear (gl.COLOR_BUFFER_BIT);
+    r2d.draw_2d_texture (gl, texid, 0, win_h - dims.h, dims.w, dims.h, 1);
+
+    gl.readPixels (0, 0, dims.w, dims.h, gl.RGBA, gl.UNSIGNED_BYTE, buf_rgba);
+    for (let i = 0, j = 0; i < buf_rgba.length; i ++)
+    {
+        if (i % 4 != 3)
+            buf_rgb[j++] = buf_rgba[i];
+    }
+
+    GLUtil.set_render_target (gl, s_rtarget_main);
+
+    return buf_rgb;
+}
 
 function render_classification_result (gl, predictions)
 {
@@ -57,7 +82,6 @@ async function startWebGL()
 
     const camtex = GLUtil.create_camera_texture (gl);
     const imgtex = GLUtil.create_image_texture2 (gl, "pakutaso_strawberry.jpg");
-    let image = imgtex.image;
     let texid = imgtex.texid;
 
     let win_w = canvas.clientWidth;
@@ -73,6 +97,9 @@ async function startWebGL()
 
     await init_tfjs_classification ();
     s_debug_log.innerHTML = "tfjs.Backend = " + tf.getBackend() + "<br>"
+
+    s_rtarget_main = GLUtil.create_render_target (gl, win_w, win_h, 0);
+    s_rtarget_feed = GLUtil.create_render_target (gl, win_w, win_w, 1);
 
 
     let count = 0;
@@ -93,22 +120,22 @@ async function startWebGL()
             GLUtil.update_camera_texture (gl, camtex);
             cam_w = camtex.video.videoWidth;
             cam_h = camtex.video.videoHeight;
-            image = camtex.video;
             texid = camtex.texid;
         }
+
+        let feed_image = generate_input_image (gl, texid, win_w, win_h);
 
         /* --------------------------------- *
          *  invoke TF.js
          * --------------------------------- */
         let time_invoke_start = performance.now();
-        let predictions = await invoke_classification (image);
+        let predictions = await invoke_classification (feed_image);
         let time_invoke = performance.now() - time_invoke_start;
 
         /* --------------------------------- *
          *  render results
          * --------------------------------- */
-        gl.bindFramebuffer (gl.FRAMEBUFFER, null);
-        gl.viewport (0, 0, win_w, win_h);
+        GLUtil.set_render_target (gl, s_rtarget_main);
         gl.clear (gl.COLOR_BUFFER_BIT);
 
         r2d.draw_2d_texture (gl, texid, 0, 0, win_w, win_h, 0)

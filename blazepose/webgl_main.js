@@ -7,6 +7,7 @@
 let s_debug_log;
 let s_rtarget_main;
 let s_rtarget_feed;
+let s_rtarget_src;
 
 function init_stats ()
 {
@@ -84,24 +85,6 @@ generate_landmark_input_image (gl, srctex, texw, texh, detection, pose_id)
     GLUtil.set_render_target (gl, s_rtarget_main);
 
     return buf_rgb;
-}
-
-function render_classification_result (gl, predictions)
-{
-    for (let i = 0; i < predictions.length; i ++)
-    {
-        let col_str  = [1.0, 1.0, 1.0, 1.0];
-        let col_blue = [0.0, 0.0, 0.8, 0.8];
-        let col_gray = [0.3, 0.3, 0.3, 0.8];
-        let dy = 480 - 22 * (predictions.length - i);
-
-        let item = predictions[i];
-        let col_bg = item.probability > 0.5 ? col_blue : col_gray;
-
-        let buf;
-        buf = "[" + i + "]" + item.probability.toFixed(2) + "(" + item.index + ")" + item.class_name;
-        dbgstr.draw_dbgstr_ex (gl, buf, 0, dy, 1.0, col_str, col_bg);
-    }
 }
 
 
@@ -194,7 +177,7 @@ render_bone (gl, ofstx, ofsty, drw_w, drw_h,
 }
 
 function
-render_pose_landmark (gl, ofstx, ofsty, texw, texh, landmark,
+render_pose_landmark (gl, ofstx, ofsty, texw, texh, landmakr_ret,
                       detection, pose_id)
 {
     let col_red    = [1.0, 0.0, 0.0, 1.0];
@@ -203,6 +186,11 @@ render_pose_landmark (gl, ofstx, ofsty, texw, texh, landmark,
     let col_lime   = [0.0, 1.0, 0.3, 1.0];
     let col_blue   = [0.0, 0.5, 1.0, 1.0];
     let col_white  = [1.0, 1.0, 1.0, 1.0];
+
+    if (landmakr_ret.length <= pose_id)
+        return;
+
+    let landmark = landmakr_ret[pose_id];
 
     let score = landmark.score;
     let buf = "score:" + (score * 100).toFixed(1);
@@ -280,6 +268,48 @@ render_cropped_pose_image (gl, srctex, ofstx, ofsty, texw, texh, detection, pose
 }
 
 
+/* Adjust the texture size to fit the window size
+ *
+ *                      Portrait
+ *     Landscape        +------+
+ *     +-+------+-+     +------+
+ *     | |      | |     |      |
+ *     | |      | |     |      |
+ *     +-+------+-+     +------+
+ *                      +------+
+ */
+function
+generate_squared_src_image (gl, texid, src_w, src_h, win_w, win_h)
+{
+    let win_aspect = win_w / win_h;
+    let tex_aspect = src_w / src_h;
+    let scale;
+    let scaled_w, scaled_h;
+    let offset_x, offset_y;
+
+    if (win_aspect > tex_aspect)
+    {
+        scale = win_h / src_h;
+        scaled_w = scale * src_w;
+        scaled_h = scale * src_h;
+        offset_x = (win_w - scaled_w) * 0.5;
+        offset_y = 0;
+    }
+    else
+    {
+        scale = win_w / src_w;
+        scaled_w = scale * src_w;
+        scaled_h = scale * src_h;
+        offset_x = 0;
+        offset_y = (win_h - scaled_h) * 0.5;
+    }
+
+    GLUtil.set_render_target (gl, s_rtarget_src);
+    gl.clearColor (0.0, 0.0, 0.0, 1.0);
+    gl.clear (gl.COLOR_BUFFER_BIT);
+    r2d.draw_2d_texture (gl, texid, offset_x, offset_y, scaled_w, scaled_h, 1)
+}
+
 
 /* ---------------------------------------------------------------- *
  *      M A I N    F U N C T I O N
@@ -299,14 +329,11 @@ async function startWebGL()
     gl.clearColor (0.7, 0.7, 0.7, 1.0);
     gl.clear (gl.COLOR_BUFFER_BIT);
 
-    //const camtex = GLUtil.create_camera_texture (gl);
+    const camtex = GLUtil.create_camera_texture (gl);
     const imgtex = GLUtil.create_image_texture2 (gl, "pexels-alexy-almond-3758048.jpg");
-    let texid = imgtex.texid;
 
     let win_w = canvas.clientWidth;
     let win_h = canvas.clientHeight;
-    let cam_w = 0;
-    let cam_h = 0;
 
     r2d.init_2d_render (gl, win_w, win_h);
     init_dbgstr (gl, win_w, win_h);
@@ -319,7 +346,7 @@ async function startWebGL()
 
     s_rtarget_main = GLUtil.create_render_target (gl, win_w, win_h, 0);
     s_rtarget_feed = GLUtil.create_render_target (gl, win_w, win_w, 1);
-
+    s_rtarget_src  = GLUtil.create_render_target (gl, win_w, win_w, 1);
 
     let prev_time_ms = performance.now();
     async function render (now)
@@ -333,13 +360,19 @@ async function startWebGL()
 
         stats.begin();
 
-        //if (GLUtil.is_camera_ready(camtex))
-        //{
-        //    GLUtil.update_camera_texture (gl, camtex);
-        //    cam_w = camtex.video.videoWidth;
-        //    cam_h = camtex.video.videoHeight;
-        //    texid = camtex.texid;
-        //}
+        let src_w = imgtex.image.width;
+        let src_h = imgtex.image.height;
+        let texid = imgtex.texid;
+        if (GLUtil.is_camera_ready(camtex))
+        {
+            GLUtil.update_camera_texture (gl, camtex);
+            src_w = camtex.video.videoWidth;
+            src_h = camtex.video.videoHeight;
+            texid = camtex.texid;
+        }
+
+        generate_squared_src_image (gl, texid, src_w, src_h, win_w, win_h);
+        texid = s_rtarget_src.texid;
 
         /* --------------------------------------- *
          *  invoke TF.js (Pose detection)
@@ -373,7 +406,7 @@ async function startWebGL()
 
         r2d.draw_2d_texture (gl, texid, 0, 0, win_w, win_h, 0)
         render_detect_region (gl, 0, 0, win_w, win_h, predictions);
-        render_pose_landmark (gl, 0, 0, win_w, win_h, landmark_ret[0], predictions, 0);
+        render_pose_landmark (gl, 0, 0, win_w, win_h, landmark_ret, predictions, 0);
 
         /* draw cropped image of the pose area */
         for (let pose_id = 0; pose_id < predictions.length; pose_id ++)
@@ -381,7 +414,7 @@ async function startWebGL()
             let w = 100;
             let h = 100;
             let x = win_w - w - 10;
-            let y = h * pose_id + 10;
+            let y = h * pose_id + 20;
             let col_white = [1.0, 1.0, 1.0, 1.0];
 
             render_cropped_pose_image (gl, texid, x, y, w, h, predictions, pose_id);
@@ -396,9 +429,9 @@ async function startWebGL()
         let str = "Interval: " + interval_ms.toFixed(1) + " [ms]";
         dbgstr.draw_dbgstr (gl, str, 10, 10);
 
-        str = "TF.js0   : " + time_invoke0.toFixed(1)  + " [ms]";
+        str = "TF.js0  : " + time_invoke0.toFixed(1)  + " [ms]";
         dbgstr.draw_dbgstr (gl, str, 10, 10 + 22 * 1);
-        str = "TF.js1   : " + time_invoke1.toFixed(1)  + " [ms]";
+        str = "TF.js1  : " + time_invoke1.toFixed(1)  + " [ms]";
         dbgstr.draw_dbgstr (gl, str, 10, 10 + 22 * 2);
 
         stats.end();

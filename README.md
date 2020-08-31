@@ -9,3 +9,12 @@ Live demo is [here](https://terryky.github.io/tfjs_webgl_app/handpose).<br>
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/blazepose).<br>
 [<img src="blazepose/blazepose.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/blazepose)
 
+## 3. Classification
+Live demo is [here](https://terryky.github.io/tfjs_webgl_app/classification).<br>
+[<img src="classification/classification.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/classification)
+
+
+# Acknowledgements
+- https://github.com/tensorflow/tfjs-models
+- https://github.com/google/mediapipe
+- https://github.com/PINTO0309/PINTO_model_zoo

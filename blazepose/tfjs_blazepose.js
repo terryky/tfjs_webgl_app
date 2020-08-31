@@ -111,12 +111,12 @@ get_pose_landmark_input_dims ()
 async function 
 decode_bounds (region_list, logits, score_thresh, input_img_w, input_img_h)
 {
-    let region = {};
     let scores_ptr = await logits[0].data();
     let bbox_ptr   = await logits[1].data();
 
     for (let i = 0; i < s_anchors.length; i ++)
     {
+        let region = {};
         let anchor = s_anchors[i];
         let score0 = scores_ptr[i];
         let score = 1.0 / (1.0 + Math.exp(-score0));

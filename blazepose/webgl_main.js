@@ -330,6 +330,7 @@ async function startWebGL()
     gl.clear (gl.COLOR_BUFFER_BIT);
 
     const camtex = GLUtil.create_camera_texture (gl);
+    //const camtex = GLUtil.create_video_texture (gl, "pexels_dance.mp4");
     const imgtex = GLUtil.create_image_texture2 (gl, "pexels-alexy-almond-3758048.jpg");
 
     let win_w = canvas.clientWidth;
@@ -410,7 +411,11 @@ async function startWebGL()
 
         r2d.draw_2d_texture (gl, texid, 0, 0, win_w, win_h, 0)
         render_detect_region (gl, 0, 0, win_w, win_h, predictions);
-        render_pose_landmark (gl, 0, 0, win_w, win_h, landmark_ret, predictions, 0);
+
+        for (let pose_id = 0; pose_id < predictions.length; pose_id ++)
+        {
+            render_pose_landmark (gl, 0, 0, win_w, win_h, landmark_ret, predictions, pose_id);
+        }
 
         /* draw cropped image of the pose area */
         for (let pose_id = 0; pose_id < predictions.length; pose_id ++)

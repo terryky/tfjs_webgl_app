@@ -348,6 +348,10 @@ async function startWebGL()
     s_rtarget_feed = GLUtil.create_render_target (gl, win_w, win_w, 1);
     s_rtarget_src  = GLUtil.create_render_target (gl, win_w, win_w, 1);
 
+    /* stop loading spinner */
+    const spinner = document.getElementById('loading');
+    spinner.classList.add('loaded');
+
     let prev_time_ms = performance.now();
     async function render (now)
     {

@@ -6,8 +6,10 @@
         H E A D
   ------------------------------------------------------------------>
 <head>
-    <title>WebGL Example</title>
+    <title>TensorFlow.js + WebGL Example</title>
     <meta charset="utf-8">
+
+    <link rel="stylesheet" href="css/loading1.css" type="text/css">
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
@@ -32,6 +34,13 @@
         B O D Y
   ------------------------------------------------------------------>
 <body onload="startWebGL();">
+
+    <h1>Blazepose</h1>
+
+    <div id="loading">
+      <div class="spinner"></div>
+    </div>
+
     <center>
     <canvas id="glcanvas" width="800" height="800"></canvas>
     </center>

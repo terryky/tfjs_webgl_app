@@ -87,7 +87,7 @@ init_tfjs_blazepose ()
 }
 
 function 
-get_classification_input_dims ()
+get_pose_detect_input_dims ()
 {
     return {
         w: s_detect_tensor_input.shape[2],

@@ -23,7 +23,7 @@ function init_stats ()
 
 function generate_input_image (gl, texid, win_w, win_h)
 {
-    let dims = get_classification_input_dims ();
+    let dims = get_pose_detect_input_dims ();
     let buf_rgba = new Uint8Array (dims.w * dims.h * 4);
     let buf_rgb  = new Uint8Array (dims.w * dims.h * 3);
 

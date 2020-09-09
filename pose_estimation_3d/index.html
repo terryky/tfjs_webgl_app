@@ -1,0 +1,60 @@
+
+<!doctype html>
+<html lang="en">
+
+<!------------------------------------------------------------------
+        H E A D
+  ------------------------------------------------------------------>
+<head>
+    <title>TensorFlow.js + WebGL Example</title>
+    <meta charset="utf-8">
+
+    <style>
+        body {
+            margin: 0;
+            background-color: white;
+        }
+        canvas {
+            display: block;  /* prevents scrollbar */
+            width:  100vw;
+            height: 100vh;
+        }
+    </style>
+    <link rel="stylesheet" href="css/loading1.css" type="text/css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script>
+
+    <script type="text/javascript" src="../common/util_tfjs.js"></script>
+    <script type="text/javascript" src="../common/util_shader.js"></script>
+    <script type="text/javascript" src="../common/util_matrix.js"></script>
+    <script type="text/javascript" src="../common/util_texture.js"></script>
+    <script type="text/javascript" src="../common/util_render2d.js"></script>
+    <script type="text/javascript" src="../common/util_render_target.js"></script>
+    <script type="text/javascript" src="../common/util_debugstr.js"></script>
+    <script type="text/javascript" src="../common/util_pmeter.js"></script>
+    <script type="text/javascript" src="../third_party/stats.min.js"></script>
+    <script type="text/javascript" src="shapes.js"></script>
+    <script type="text/javascript" src="render_pose3d.js"></script>
+    <script type="text/javascript" src="tfjs_pose3d.js"></script>
+    <script type="text/javascript" src="webgl_main.js"></script>
+</head>
+
+<!------------------------------------------------------------------
+        B O D Y
+  ------------------------------------------------------------------>
+<body onload="startWebGL();">
+    <div id="loading">
+      <div class="spinner"></div>
+    </div>
+
+    <center>
+    <canvas id="glcanvas"></canvas>
+    </center>
+    <div id="debug_log"></div>
+</body>
+
+
+</html>

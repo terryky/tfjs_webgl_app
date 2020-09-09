@@ -36,6 +36,9 @@ GLUtil.create_render_target = function (gl, w, h, flag)
 
 GLUtil.destroy_render_target = function (gl, rtarget)
 {
+    if (!rtarget.valid)
+        return;
+
     let texid = rtarget.texid;
     let fboid = rtarget.fboid;
 

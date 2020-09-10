@@ -129,7 +129,7 @@ render.strFS = `
 
 
 
-function init_handpose_render (gl, w, h)
+function init_pose3d_render (gl, w, h)
 {
     render.sobj = GLUtil.generate_shader (gl, render.strVS, render.strFS);
     render.loc_mtx_mv  = gl.getUniformLocation (render.sobj.program, "u_MVMatrix" );
@@ -157,9 +157,9 @@ function init_handpose_render (gl, w, h)
     render.shape_sphere       = shapes.shape_create (gl, shapes.SHAPE_SPHERE,   30, 30);
 }
 
-function resize_handpose_render (gl, w, h)
+function resize_pose3d_render (gl, w, h)
 {
-    matrix_proj_perspective (render.matPrj, 90.0, w / h, 1, 10000);
+    matrix_proj_perspective (render.matPrj, 72.0, w / h, 1, 10000);
 }
 
 
@@ -217,10 +217,10 @@ function draw_bone (gl, mtxGlobal, p0, p1, radius, color, is_shadow)
         matrix_mult (matMV, matLook, matMV);
     }
 
+    render.compute_invmat3x3 (matMVI3x3, matMV);
+
     matrix_mult (matMV, mtxGlobal, matMV);
     matrix_mult (matPMV, render.matPrj, matMV);
-
-    render.compute_invmat3x3 (matMVI3x3, matMV);
 
     gl.uniformMatrix4fv (render.loc_mtx_mv,  false, matMV );
     gl.uniformMatrix4fv (render.loc_mtx_pmv, false, matPMV);
@@ -273,11 +273,11 @@ function draw_sphere (gl, mtxGlobal, p0, radius, color, is_shadow)
     matrix_identity (matMV);
     matrix_translate (matMV, p0[0], p0[1], p0[2]);
     matrix_scale     (matMV, radius, radius, radius);
-    matrix_mult (matMV, mtxGlobal, matMV);
-
-    matrix_mult (matPMV, render.matPrj, matMV);
 
     render.compute_invmat3x3 (matMVI3x3, matMV);
+
+    matrix_mult (matMV, mtxGlobal, matMV);
+    matrix_mult (matPMV, render.matPrj, matMV);
 
     gl.uniformMatrix4fv (render.loc_mtx_mv,  false, matMV );
     gl.uniformMatrix4fv (render.loc_mtx_pmv, false, matPMV);
@@ -310,17 +310,17 @@ function draw_sphere (gl, mtxGlobal, p0, radius, color, is_shadow)
 }
 
 
-function draw_floor (gl, mtxGlobal)
+function draw_floor (gl, mtxGlobal, div_u, div_v)
 {
     let matMV     = new Array(16);
     let matPMV    = new Array(16);
     let matMVI3x3 = new Array( 9);
 
     let floor_uv = [
-          0.0,  0.0,
-          0.0, 40.0,
-         40.0,  0.0,
-         40.0, 40.0,
+          0.0,   0.0,
+          0.0, div_v,
+        div_u,   0.0,
+        div_u, div_v,
     ];
 
     gl.disable (gl.DEPTH_TEST);
@@ -342,15 +342,15 @@ function draw_floor (gl, mtxGlobal)
     gl.vertexAttribPointer (render.sobj.loc_uv , 2, gl.FLOAT, false, 0, 0);
 
     matrix_identity (matMV);
+    render.compute_invmat3x3 (matMVI3x3, matMV);
+
     matrix_mult (matMV, mtxGlobal, matMV);
     matrix_mult (matPMV, render.matPrj, matMV);
-
-    render.compute_invmat3x3 (matMVI3x3, matMV);
 
     gl.uniformMatrix4fv (render.loc_mtx_mv,  false, matMV );
     gl.uniformMatrix4fv (render.loc_mtx_pmv, false, matPMV);
     gl.uniformMatrix3fv (render.loc_mtx_nrm, false, matMVI3x3);
-    gl.uniform3f (render.loc_lightpos, 1.0, 1.0, 1.0);
+    gl.uniform3f (render.loc_lightpos, 1.0, 2.0, 3.0);
     gl.uniform3f (render.loc_color, 0.9, 0.9, 0.9);
     gl.uniform1f (render.loc_alpha, 1.0);
 
@@ -403,10 +403,10 @@ function draw_triangle (gl, mtxGlobal, p0, p1, p2, color)
     gl.vertexAttribPointer (render.sobj.loc_uv , 2, gl.FLOAT, false, 0, 0);
 
     matrix_identity (matMV);
+    render.compute_invmat3x3 (matMVI3x3, matMV);
+
     matrix_mult (matMV, mtxGlobal, matMV);
     matrix_mult (matPMV, render.matPrj, matMV);
-
-    render.compute_invmat3x3 (matMVI3x3, matMV);
 
     gl.uniformMatrix4fv (render.loc_mtx_mv,  false, matMV );
     gl.uniformMatrix4fv (render.loc_mtx_pmv, false, matPMV);
@@ -423,4 +423,53 @@ function draw_triangle (gl, mtxGlobal, p0, p1, p2, color)
     gl.disable (gl.BLEND);
 }
 
+function draw_line (gl, mtxGlobal, p0, p1, color)
+{
+    let matMV     = new Array(16);
+    let matPMV    = new Array(16);
+    let matMVI3x3 = new Array( 9);
+    let floor_vtx = new Array( 6);
 
+    for (let i = 0; i < 3; i ++)
+    {
+        floor_vtx[0 + i] = p0[i];
+        floor_vtx[3 + i] = p1[i];
+    }
+
+    gl.enable (gl.DEPTH_TEST);
+    gl.disable (gl.CULL_FACE);
+
+    gl.useProgram (render.sobj.program);
+
+    gl.enableVertexAttribArray (render.sobj.loc_vtx);
+    gl.enableVertexAttribArray (render.sobj.loc_uv );
+    gl.enableVertexAttribArray (render.sobj.loc_nrm);
+
+    gl.bindBuffer (gl.ARRAY_BUFFER, render.vbo_vtx);
+    gl.bufferData (gl.ARRAY_BUFFER, new Float32Array(floor_vtx), gl.STATIC_DRAW);
+    gl.vertexAttribPointer (render.sobj.loc_vtx, 3, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer (gl.ARRAY_BUFFER, render.vbo_uv);
+    gl.bufferData (gl.ARRAY_BUFFER, new Float32Array(render.s_uv), gl.STATIC_DRAW);
+    gl.vertexAttribPointer (render.sobj.loc_uv , 2, gl.FLOAT, false, 0, 0);
+
+    matrix_identity (matMV);
+    render.compute_invmat3x3 (matMVI3x3, matMV);
+
+    matrix_mult (matMV, mtxGlobal, matMV);
+    matrix_mult (matPMV, render.matPrj, matMV);
+
+    gl.uniformMatrix4fv (render.loc_mtx_mv,  false, matMV );
+    gl.uniformMatrix4fv (render.loc_mtx_pmv, false, matPMV);
+    gl.uniformMatrix3fv (render.loc_mtx_nrm, false, matMVI3x3);
+    gl.uniform3f (render.loc_lightpos, 1.0, 1.0, 1.0);
+    gl.uniform3f (render.loc_color, color[0], color[1], color[2]);
+    gl.uniform1f (render.loc_alpha, color[3]);
+
+    gl.enable (gl.BLEND);
+
+    gl.bindTexture (gl.TEXTURE_2D, render.texid_dummy);
+    gl.drawArrays (gl.LINES, 0, 2);
+
+    gl.disable (gl.BLEND);
+}

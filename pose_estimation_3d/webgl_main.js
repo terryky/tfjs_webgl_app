@@ -9,9 +9,36 @@ let s_rtarget_main;
 let s_rtarget_feed;
 let s_rtarget_src;
 
+
+/*
+ *  pose3d-space coordinate
+ *
+ *    -100  0  100
+ *      +---+---+  100
+ *      |   |   |
+ *      +---+---+   0
+ *      |   |   |
+ *      +---+---+ -100
+ */
+class GuiProperty {
+    constructor() {
+        this.pose_scale_x = 100;
+        this.pose_scale_y = 100;
+        this.pose_scale_z = 100;
+        this.camera_pos_z = 300;
+        this.joint_radius = 8;
+        this.bone_radius  = 2;
+        this.srcimg_scale = 1.0;
+        this.draw_axis   = false;
+        this.draw_pmeter = false;
+    }
+}
+const s_gui_prop = new GuiProperty();
+
+
 let s_srctex_region = {
-    width: 0, height: 0,
-    tex_x: 0, tex_y: 0, tex_w: 0, tex_h: 0
+    width: 0, height: 0,                    /* full rect with margin */
+    tex_x: 0, tex_y: 0, tex_w: 0, tex_h: 0  /* valid texture area */
 };
 
 function init_stats ()
@@ -36,7 +63,8 @@ function init_stats ()
  *     +-+------+-+     +------+
  *                      +------+
  */
-function generate_input_image (gl, texid, src_w, src_h, win_w, win_h)
+function
+generate_input_image (gl, texid, src_w, src_h, win_w, win_h)
 {
     let dims = get_pose_detect_input_dims ();
     let buf_rgba = new Uint8Array (dims.w * dims.h * 4);
@@ -68,10 +96,12 @@ function generate_input_image (gl, texid, src_w, src_h, win_w, win_h)
     GLUtil.set_render_target (gl, s_rtarget_feed);
     gl.clear (gl.COLOR_BUFFER_BIT);
 
+    /* draw valid texture area */
     const dx = offset_x;
     const dy = win_h - dims.h + offset_y;
     r2d.draw_2d_texture (gl, texid, dx, dy, scaled_w, scaled_h, 1);
 
+    /* read full rect with margin */
     gl.readPixels (0, 0, dims.w, dims.h, gl.RGBA, gl.UNSIGNED_BYTE, buf_rgba);
     for (let i = 0, j = 0; i < buf_rgba.length; i ++)
     {
@@ -81,39 +111,29 @@ function generate_input_image (gl, texid, src_w, src_h, win_w, win_h)
 
     GLUtil.set_render_target (gl, s_rtarget_main);
 
-    s_srctex_region.width  = dims.w;
-    s_srctex_region.height = dims.h;
-    s_srctex_region.tex_x  = offset_x;
-    s_srctex_region.tex_y  = offset_y;
-    s_srctex_region.tex_w  = scaled_w;
-    s_srctex_region.tex_h  = scaled_h;
-    
+    s_srctex_region.width  = dims.w;    /* full rect width  with margin */
+    s_srctex_region.height = dims.h;    /* full rect height with margin */
+    s_srctex_region.tex_x  = offset_x;  /* start position of valid texture */
+    s_srctex_region.tex_y  = offset_y;  /* start position of valid texture */
+    s_srctex_region.tex_w  = scaled_w;  /* width  of valid texture */
+    s_srctex_region.tex_h  = scaled_h;  /* height of valid texture */
+
     return buf_rgb;
 }
 
-function transform_coordinate (coord, cam_w, cam_h, zoffset)
-{
-    let x = coord.x;
-    let y = coord.y;
-    let z = coord.z;
-
-    x =   2 * x - cam_w;
-    y = - 2 * y + cam_h;
-    z = - 4 * z - zoffset;
-
-    return [x, y, z];
-}
 
 function
-compute_3d_hand_pos (dst_pose, texw, texh, src_pose)
+compute_3d_skelton_pos (dst_pose, texw, texh, src_pose)
 {
+    /*
+     *  because key3d[kNeck] is always zero,
+     *  we need to add offsets (key2d[kNeck]) to translate it to the global world. 
+     */
     const kNeck = 1;
     const neck_x  = src_pose.key[kNeck].x;
     const neck_y  = src_pose.key[kNeck].y;
     const xoffset = (neck_x - 0.5);
     const yoffset = (neck_y - 0.5);
-    const zoffset = 1000;
-    const scale = texh;
 
     for (let i = 0; i < kPoseKeyNum; i ++)
     {
@@ -122,9 +142,9 @@ compute_3d_hand_pos (dst_pose, texw, texh, src_pose)
         let z = src_pose.key3d[i].z;
         let s = src_pose.key3d[i].score;
 
-        x = (x + xoffset) * scale;
-        y = (y + yoffset) * scale;
-        z = z * scale + zoffset;
+        x = (x + xoffset) * s_gui_prop.pose_scale_x * 2;
+        y = (y + yoffset) * s_gui_prop.pose_scale_y * 2;
+        z = z * s_gui_prop.pose_scale_z;
         y = -y;
         z = -z;
 
@@ -149,7 +169,8 @@ render_3d_bone (gl, mtxGlobal, pose, idx0, idx1, color, rad, is_shadow)
     color[3] = a;
 }
 
-function shadow_matrix (m, light_dir, ground_pos, ground_nrm)
+function
+shadow_matrix (m, light_dir, ground_pos, ground_nrm)
 {
     vec3_normalize (light_dir);
     vec3_normalize (ground_nrm);
@@ -183,9 +204,11 @@ function shadow_matrix (m, light_dir, ground_pos, ground_nrm)
     m[15] =  a * ex + b * ey + c * ey;
 }
 
-function render_hand_landmark3d (gl, landmarks)
+function 
+render_skelton_3d (gl, landmarks)
 {
     let mtxGlobal = new Array(16);
+    let mtxTouch  = get_touch_event_matrix();
     let col_red    = [1.0, 0.0, 0.0, 1.0];
     let col_yellow = [1.0, 1.0, 0.0, 1.0];
     let col_green  = [0.0, 1.0, 0.0, 1.0];
@@ -196,13 +219,11 @@ function render_hand_landmark3d (gl, landmarks)
     let col_node   = [1.0, 1.0, 1.0, 1.0];
 
     let vp = gl.getParameter(gl.VIEWPORT);
-    let zoffset = Math.max (vp[2], vp[3]);
-    zoffset *= 0.5;
 
     let pose_draw = {};
     pose_draw.key3d = [];
-    compute_3d_hand_pos (pose_draw, vp[2], vp[3], landmarks);
-    
+    compute_3d_skelton_pos (pose_draw, vp[2], vp[3], landmarks);
+
     let pose = pose_draw;
     for (let is_shadow = 1; is_shadow >= 0; is_shadow --)
     {
@@ -210,6 +231,8 @@ function render_hand_landmark3d (gl, landmarks)
         let coln = col_node;
 
         matrix_identity (mtxGlobal);
+        matrix_translate (mtxGlobal, 0.0, 0.0, -s_gui_prop.camera_pos_z);
+        matrix_mult (mtxGlobal, mtxGlobal, mtxTouch);
 
         if (is_shadow)
         {
@@ -220,7 +243,7 @@ function render_hand_landmark3d (gl, landmarks)
 
             shadow_matrix (mtxShadow, light_dir, ground_pos, ground_nrm);
 
-            let shadow_y = - 0.5 * vp[3];
+            let shadow_y = - s_gui_prop.pose_scale_y;
             //shadow_y += pose->key3d[kNeck].y * 0.5f;
             matrix_translate (mtxGlobal, 0.0, shadow_y, 0.0);
             matrix_mult (mtxGlobal, mtxGlobal, mtxShadow);
@@ -250,7 +273,7 @@ function render_hand_landmark3d (gl, landmarks)
                 else              colj = col_yellow;
             }
 
-            const rad = (i < 14) ? 30.0 : 10.0;
+            const rad = (i < 14) ? s_gui_prop.joint_radius : s_gui_prop.joint_radius / 3;
             const alp = colj[3];
             colj[3] = (score > 0.1) ? alp : 0.1;
             draw_sphere (gl, mtxGlobal, vec, rad, colj, is_shadow);
@@ -258,7 +281,7 @@ function render_hand_landmark3d (gl, landmarks)
         }
 
         /* right arm */
-        const rad = 10.0;
+        const rad = s_gui_prop.bone_radius;
         render_3d_bone (gl, mtxGlobal, pose,  1,  2, coln, rad, is_shadow);
         render_3d_bone (gl, mtxGlobal, pose,  2,  3, coln, rad, is_shadow);
         render_3d_bone (gl, mtxGlobal, pose,  3,  4, coln, rad, is_shadow);
@@ -290,23 +313,74 @@ function render_hand_landmark3d (gl, landmarks)
 }
 
 
-function render_3d_scene (gl, hand_predictions)
+function render_3d_scene (gl, pose3d_predictions)
 {
     let mtxGlobal = new Array(16);
-    let floor_size_x = 100.0;
-    let floor_size_y = 100.0;
-    let floor_size_z = 100.0;
+    let mtxTouch  = get_touch_event_matrix();
+    let floor_size_x = 300.0;
+    let floor_size_y = 300.0;
+    let floor_size_z = 300.0;
 
     /* background */
     matrix_identity (mtxGlobal);
-    matrix_translate (mtxGlobal, 0, floor_size_y * 0.9, 0);
+    matrix_translate (mtxGlobal, 0, 0, -s_gui_prop.camera_pos_z);
+    matrix_mult (mtxGlobal, mtxGlobal, mtxTouch);
+    matrix_translate (mtxGlobal, 0, -s_gui_prop.pose_scale_y, 0);
     matrix_scale  (mtxGlobal, floor_size_x, floor_size_y, floor_size_z);
-    draw_floor (gl, mtxGlobal);
+    matrix_translate (mtxGlobal, 0, 1.0, 0);
+    draw_floor (gl, mtxGlobal, floor_size_x/10, floor_size_y/10);
 
-    for (let hand_id = 0; hand_id < hand_predictions.length; hand_id ++)
+    /* skelton */
+    for (let pose_id = 0; pose_id < pose3d_predictions.length; pose_id ++)
     {
-        const landmarks = hand_predictions[hand_id];
-        render_hand_landmark3d (gl, landmarks);
+        const landmarks = pose3d_predictions[pose_id];
+        render_skelton_3d (gl, landmarks);
+    }
+
+    if (s_gui_prop.draw_axis)
+    {
+        /* (xyz)-AXIS */
+        matrix_identity (mtxGlobal);
+        matrix_translate (mtxGlobal, 0, 0, -s_gui_prop.camera_pos_z);
+        matrix_mult (mtxGlobal, mtxGlobal, mtxTouch);
+        for (let i = -1; i <= 1; i ++)
+        {
+            for (let j = -1; j <= 1; j ++)
+            {
+                let colb = [0.1, 0.5, 0.5, 0.5];
+                let dx = s_gui_prop.pose_scale_x;
+                let dy = s_gui_prop.pose_scale_y;
+                let dz = s_gui_prop.pose_scale_z;
+                let rad = 1;
+                let v0 = [];
+                let v1 = [];
+
+                v0  = [-dx, i * dy, j * dz];
+                v1  = [ dx, i * dy, j * dz];
+
+                col = colb;
+                if (i == 0 && j == 0)
+                    col = [1.0, 0.0, 0.0, 1.0];
+                draw_line (gl, mtxGlobal, v0, v1, col);
+                draw_sphere (gl, mtxGlobal, v1, rad, col, 0);
+
+                v0  = [i * dx, -dy, j * dz];
+                v1  = [i * dx,  dy, j * dz];
+                col = colb;
+                if (i == 0 && j == 0)
+                    col = [0.0, 1.0, 0.0, 1.0];
+                draw_line (gl, mtxGlobal, v0, v1, col);
+                draw_sphere (gl, mtxGlobal, v1, rad, col, 0);
+
+                v0  = [i * dx, j * dy, -dz];
+                v1  = [i * dx, j * dy,  dz];
+                col = colb;
+                if (i == 0 && j == 0)
+                    col = [0.0, 0.0, 1.0, 1.0];
+                draw_line (gl, mtxGlobal, v0, v1, col);
+                draw_sphere (gl, mtxGlobal, v1, rad, col, 0);
+            }
+        }
     }
 }
 
@@ -336,8 +410,7 @@ render_2d_scene (gl, texid, pose_ret)
     const col_blue   = [0.0, 0.5, 1.0, 1.0];
 
     let color = [0.0, 1.0, 1.0, 1.0]
-    let radius = 5;
-    let scale  = 1;
+    let scale  = s_gui_prop.srcimg_scale;
     let tx = 5;
     let ty = 60;
     let tw = s_srctex_region.tex_w * scale;
@@ -396,52 +469,12 @@ render_2d_scene (gl, texid, pose_ret)
             const keyy = pose_ret[i].key[j].y * h + y;
             const score= pose_ret[i].key[j].score;
 
-            let r = 9;
+            let r = 9 * scale;
+            colj[3] = score;
             r2d.draw_2d_fillrect (gl, keyx - (r/2), keyy - (r/2), r, r, colj);
+            colj[3] = 1.0;
         }
     }
-}
-
-var s_showme_count = 0;
-function render_progress_bar (gl, current_phase, hand_predictions, win_w, win_h)
-{
-    if (hand_predictions.length > 0)
-    {
-        s_showme_count = 30;
-        return;
-    }
-
-    if (current_phase >= 3 && s_showme_count > 0)
-    {
-        s_showme_count --;
-        return;
-    }
-
-    let x = win_w * 0.25;
-    let y = win_h * 0.5 - 50;
-    let w = win_w * 0.5;
-    let h = 100;
-    let wp= (w / 3) * current_phase;
-    r2d.draw_2d_fillrect   (gl, x, y, w,  h, [0.0, 0.4, 0.4, 0.2]);
-    r2d.draw_2d_fillrect   (gl, x, y, wp, h, [0.0, 0.4, 0.4, 0.5]);
-    r2d.draw_2d_rect       (gl, x, y, w,  h, [0.0, 1.0, 1.0, 0.8], 3.0);
-
-    if (current_phase < 3)
-    {
-        x = win_w * 0.5 - 100;
-        y = win_h * 0.5 - 22;
-        let str = "Initializing[" + current_phase + "/3]...";
-        dbgstr.draw_dbgstr_ex (gl, str, x, y,    1, [0.0, 1.0, 1.0, 1.0], [0.2, 0.2, 0.2, 1.0]);
-        str = "Please wait a minute.";
-        dbgstr.draw_dbgstr_ex (gl, str, x, y+22, 1, [0.0, 1.0, 1.0, 1.0], [0.2, 0.2, 0.2, 1.0]);
-
-        return;
-    }
-
-    x = win_w * 0.5 - 100;
-    y = win_h * 0.5 - 11;
-    let str = " show me your hand ";
-    dbgstr.draw_dbgstr_ex (gl, str, x, y, 1, [0.0, 1.0, 1.0, 1.0], [0.2, 0.2, 0.2, 1.0]);
 }
 
 
@@ -454,7 +487,7 @@ function on_resize (gl)
     pmeter.resize (gl, w, h, h - 100);
     dbgstr.resize_viewport (gl, w, h);
     r2d.resize_viewport (gl, w, h);
-    resize_handpose_render (gl, w, h);
+    resize_pose3d_render (gl, w, h);
 
     GLUtil.destroy_render_target (gl, s_rtarget_main);
     GLUtil.destroy_render_target (gl, s_rtarget_feed);
@@ -479,6 +512,23 @@ function check_resize_canvas (gl, canvas)
 }
 
 
+function
+init_gui ()
+{
+    const gui = new dat.GUI();
+
+    gui.add (s_gui_prop, 'pose_scale_x', 0, 1000);
+    gui.add (s_gui_prop, 'pose_scale_y', 0, 1000);
+    gui.add (s_gui_prop, 'pose_scale_z', 0, 1000);
+    gui.add (s_gui_prop, 'camera_pos_z', 0, 1000);
+    gui.add (s_gui_prop, 'joint_radius', 0, 20);
+    gui.add (s_gui_prop, 'bone_radius',  0, 20);
+    gui.add (s_gui_prop, 'srcimg_scale', 0, 5.0);
+    gui.add (s_gui_prop, 'draw_axis');
+    gui.add (s_gui_prop, 'draw_pmeter');
+}
+
+
 /* ---------------------------------------------------------------- *
  *      M A I N    F U N C T I O N
  * ---------------------------------------------------------------- */
@@ -498,14 +548,18 @@ async function startWebGL()
     gl.clearColor (0.7, 0.7, 0.7, 1.0);
     gl.clear (gl.COLOR_BUFFER_BIT);
 
+    init_touch_event (canvas);
+    init_gui ();
+
     const camtex = GLUtil.create_camera_texture (gl);
+    //const camtex = GLUtil.create_video_texture (gl, "./assets/just_do_it.mp4");
     const imgtex = GLUtil.create_image_texture2 (gl, "pakutaso_person.jpg");
 
     let win_w = canvas.clientWidth;
     let win_h = canvas.clientHeight;
 
     r2d.init_2d_render (gl, win_w, win_h);
-    init_handpose_render (gl, win_w, win_h);
+    init_pose3d_render (gl, win_w, win_h);
 
     init_dbgstr (gl, win_w, win_h);
     pmeter.init_pmeter (gl, win_w, win_h, win_h - 40);
@@ -554,10 +608,10 @@ async function startWebGL()
          *  invoke TF.js (Pose detection)
          * --------------------------------------- */
         let feed_image = generate_input_image (gl, texid, src_w, src_h, win_w, win_h);
-        let hand_predictions = {length: 0};
+        let pose3d_predictions = {length: 0};
 
         let time_invoke0_start = performance.now();
-        hand_predictions = await await invoke_pose_detect (feed_image);
+        pose3d_predictions = await await invoke_pose_detect (feed_image);
         let time_invoke0 = performance.now() - time_invoke0_start;
 
 
@@ -567,29 +621,33 @@ async function startWebGL()
         GLUtil.set_render_target (gl, s_rtarget_main);
         gl.clear (gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        render_3d_scene (gl, hand_predictions);
-        render_2d_scene (gl, texid, hand_predictions);
-        render_progress_bar (gl, current_phase, hand_predictions, win_w, win_h);
+        render_3d_scene (gl, pose3d_predictions);
+        render_2d_scene (gl, texid, pose3d_predictions);
 
         /* --------------------------------------- *
          *  post process
          * --------------------------------------- */
-        pmeter.draw_pmeter (gl, 0, 40);
+        if (s_gui_prop.draw_pmeter)
+        {
+            pmeter.draw_pmeter (gl, 0, 40);
+        }
 
         let str = "Interval: " + interval_ms.toFixed(1) + " [ms]";
         dbgstr.draw_dbgstr (gl, str, 10, 10);
 
-        str = "BACKEND: " + tf.getBackend();
-        dbgstr.draw_dbgstr_ex (gl, str, win_w - 200, 22 * 0, 1, [0.0, 1.0, 1.0, 1.0], [0.2, 0.2, 0.2, 1.0]);
-
-        str = "window(" + win_w + ", " + win_h + ")";
-        dbgstr.draw_dbgstr (gl, str, win_w - 200, 22 * 1);
-
-        str = "srcdim(" + src_w + ", " + src_h + ")";
-        dbgstr.draw_dbgstr (gl, str, win_w - 200, 22 * 2);
-
         str = "TF.js0  : " + time_invoke0.toFixed(1)  + " [ms]";
         dbgstr.draw_dbgstr (gl, str, 10, 10 + 22 * 1);
+
+        str = "BACKEND: " + tf.getBackend();
+        dbgstr.draw_dbgstr_ex (gl, str, win_w - 220, win_h - 22 * 3, 
+            1, [0.0, 1.0, 1.0, 1.0], [0.2, 0.2, 0.2, 1.0]);
+
+        str = "window(" + win_w + ", " + win_h + ")";
+        dbgstr.draw_dbgstr (gl, str, win_w - 220, win_h - 22 * 2);
+
+        str = "srcdim(" + src_w + ", " + src_h + ")";
+        dbgstr.draw_dbgstr (gl, str, win_w - 220, win_h - 22 * 1);
+
 
         //stats.end();
         requestAnimationFrame (render);

@@ -32,6 +32,8 @@ function vec3_normalize (v)
     v[0] *= invLen;
     v[1] *= invLen;
     v[2] *= invLen;
+
+    return len;
 }
 
 function vec2_normalize (v)
@@ -176,8 +178,8 @@ function matrix_turn_y (m, cosA, sinA)
 }
 
 /*
- * void RUTX_MatTurnZ(FMatrix *m, float rad) 
- * Z軸回りのローカル回転
+ * void turn_z(float *m, float cosA, float sinA)
+ * local rotation around Z-axis
  * M = M * Rz
  *
  * | m00 m01 m02 m03 |   | m00 m01 m02 m03 |   | cosA -sinA 0 0 |
@@ -1092,4 +1094,88 @@ function matrix_invert (m)
     }
 }
 
+
+/* lpR = lpP * lpQ */
+function quaternion_mult (lpR, lpP, lpQ)
+{
+    let pw, px, py, pz;
+    let qw, qx, qy, qz;
+
+    pw = lpP[0]; px = lpP[1]; py = lpP[2]; pz = lpP[3];
+    qw = lpQ[0]; qx = lpQ[1]; qy = lpQ[2]; qz = lpQ[3];
+
+    lpR[0] = pw * qw - px * qx - py * qy - pz * qz;
+    lpR[1] = pw * qx + px * qw + py * qz - pz * qy;
+    lpR[2] = pw * qy - px * qz + py * qw + pz * qx;
+    lpR[3] = pw * qz + px * qy - py * qx + pz * qw;
+}
+
+
+function quaternion_to_matrix (lpM, lpQ)
+{
+    let qw, qx, qy, qz;
+    let x2, y2, z2;
+    let xy, yz, zx;
+    let wx, wy, wz;
+
+    qw = lpQ[0]; qx = lpQ[1]; qy = lpQ[2]; qz = lpQ[3];
+
+    x2 = 2.0 * qx * qx;
+    y2 = 2.0 * qy * qy;
+    z2 = 2.0 * qz * qz;
+
+    xy = 2.0 * qx * qy;
+    yz = 2.0 * qy * qz;
+    zx = 2.0 * qz * qx;
+
+    wx = 2.0 * qw * qx;
+    wy = 2.0 * qw * qy;
+    wz = 2.0 * qw * qz;
+
+    lpM[ 0] = 1.0 - y2 - z2;
+    lpM[ 4] = xy - wz;
+    lpM[ 8] = zx + wy;
+    lpM[12] = 0.0;
+
+    lpM[ 1] = xy + wz;
+    lpM[ 5] = 1.0 - z2 - x2;
+    lpM[ 9] = yz - wx;
+    lpM[13] = 0.0;
+
+    lpM[ 2] = zx - wy;
+    lpM[ 6] = yz + wx;
+    lpM[10] = 1.0 - x2 - y2;
+    lpM[14] = 0.0;
+
+    lpM[ 3] = lpM[ 7] = lpM[11] = 0.0;
+    lpM[15] = 1.0;
+}
+
+
+function quaternion_rotate (lpQ, rad, ax, ay, az)
+{
+    let hrad = 0.5 * rad;
+    let s = Math.sin(hrad);
+
+    lpQ[0] = Math.cos(hrad);    /* w */
+    lpQ[1] = s * ax;            /* x */
+    lpQ[2] = s * ay;            /* y */
+    lpQ[3] = s * az;            /* z */
+}
+
+function quaternion_identity (lpQ)
+{
+    lpQ[0] = 1.0;           /* w */
+    lpQ[1] = 0.0;           /* x */
+    lpQ[2] = 0.0;           /* y */
+    lpQ[3] = 0.0;           /* z */
+}
+
+function quaternion_copy (lpTo, lpFrom)
+{
+    lpTo[0] = lpFrom[0];    /* w */
+    lpTo[1] = lpFrom[1];    /* x */
+    lpTo[2] = lpFrom[2];    /* y */
+    lpTo[3] = lpFrom[3];    /* z */
+}
 

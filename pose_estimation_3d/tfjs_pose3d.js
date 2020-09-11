@@ -3,35 +3,22 @@
  * Copyright (c) 2020 terryky1220@gmail.com
  * ------------------------------------------------ */
 
-const kMidHipCenter      = 0;
-const kFullBodySizeRot   = 1;
-const kMidShoulderCenter = 2;
-const kUpperBodySizeRot  = 3;
-const kPoseDetectKeyNum  = 4;
-const POSE_JOINT_NUM = 25;
-
 const kPoseKeyNum = 19;
 
 let s_detect_model;
-let s_detect_tensor_input;
-
-let s_landmark_model;
-let s_landmark_tensor_input;
-
+let s_tensor_input;
 let s_tensor_heatmap;
 let s_tensor_offsets;
 
 let s_hmp_w = 0;
 let s_hmp_h = 0;
 
-let s_anchors = [];
-
 
 /* -------------------------------------------------- *
  *  Create TensorFlow.js Model
  * -------------------------------------------------- */
 async function
-init_tfjs_blazepose ()
+init_tfjs_pose3d ()
 {
     try {
         let url = "./model/model.json";
@@ -42,39 +29,27 @@ init_tfjs_blazepose ()
         alert (e.message)
     }
 
-    /* Pose detect */
-    s_detect_tensor_input = tfjs_get_tensor_by_name (s_detect_model, 0, "data");        /* (1, 256, 448,  3) */
-    s_tensor_offsets      = tfjs_get_tensor_by_name (s_detect_model, 1, "Identity");    /* (1,  32,  56, 57) */
-    s_tensor_heatmap      = tfjs_get_tensor_by_name (s_detect_model, 1, "Identity_1");  /* (1,  32,  56, 19) */
-
-    let det_input_w = s_detect_tensor_input.shape[2];
-    let det_input_h = s_detect_tensor_input.shape[1];
+    s_tensor_input   = tfjs_get_tensor_by_name (s_detect_model, 0, "data");        /* (1, 256, 448,  3) */
+    s_tensor_offsets = tfjs_get_tensor_by_name (s_detect_model, 1, "Identity");    /* (1,  32,  56, 57) */
+    s_tensor_heatmap = tfjs_get_tensor_by_name (s_detect_model, 1, "Identity_1");  /* (1,  32,  56, 19) */
 
     return 0;
 }
 
 function 
-get_pose_detect_input_dims ()
+get_pose3d_input_dims ()
 {
     return {
-        w: s_detect_tensor_input.shape[2],
-        h: s_detect_tensor_input.shape[1]
-    };
-}
-
-function 
-get_pose_landmark_input_dims ()
-{
-    return {
-        w: s_landmark_tensor_input.shape[2],
-        h: s_landmark_tensor_input.shape[1]
+        w: s_tensor_input.shape[2],
+        h: s_tensor_input.shape[1]
     };
 }
 
 
-/* -------------------------------------------------- *
- * Invoke TensorFlow.js (Pose detection)
- * -------------------------------------------------- */
+/*
+ *  these post process are based on:
+ *      https://github.com/openvinotoolkit/open_model_zoo/blob/master/demos/python_demos/human_pose_estimation_3d_demo/modules/parse_poses.py
+ */
 function
 get_heatmap_score (heatmap_ptr, idx_y, idx_x, key_id)
 {
@@ -85,7 +60,7 @@ get_heatmap_score (heatmap_ptr, idx_y, idx_x, key_id)
 function
 get_offset_vector (offsets_ptr, ofst3d, idx_y, idx_x, pose_id_)
 {
-    let map_id_to_panoptic = [1, 0,  9, 10, 11, 3, 4, 5, 12, 13, 14, 6, 7, 8, 15, 16, 17, 18, 2];
+    let map_id_to_panoptic = [1, 0, 9, 10, 11, 3, 4, 5, 12, 13, 14, 6, 7, 8, 15, 16, 17, 18, 2];
     let pose_id = map_id_to_panoptic[pose_id_];
 
     let idx0 = (idx_y * s_hmp_w * kPoseKeyNum*3) + (idx_x * kPoseKeyNum*3) + (3 * pose_id + 0);
@@ -110,10 +85,10 @@ get_index_to_pos (offsets_ptr, idx_x, idx_y, key_id, pos2d, pos3d)
 
 
 async function 
-decode_bounds (pose_result, logits, score_thresh, input_img_w, input_img_h)
+decode_single_pose (pose_list, out_tensors, input_img_w, input_img_h)
 {
-    let tensor_offsets = logits[0]; /* (1,  32,  56, 57) */
-    let tensor_heatmap = logits[1]; /* (1,  32,  56, 19) */
+    let tensor_offsets = out_tensors[0]; /* (1,  32,  56, 57) */
+    let tensor_heatmap = out_tensors[1]; /* (1,  32,  56, 19) */
     s_hmp_w = tensor_heatmap.shape[2];
     s_hmp_h = tensor_heatmap.shape[1];
 
@@ -160,7 +135,7 @@ decode_bounds (pose_result, logits, score_thresh, input_img_w, input_img_h)
     }
 
     pose.pose_score = 1.0;
-    pose_result.push (pose);
+    pose_list.push (pose);
 }
 
 
@@ -169,10 +144,10 @@ decode_bounds (pose_result, logits, score_thresh, input_img_w, input_img_h)
  * -------------------------------------------------- */
 function exec_tfjs (img)
 {
-    let w = s_detect_tensor_input.shape[2];
-    let h = s_detect_tensor_input.shape[1];
+    let w = s_tensor_input.shape[2];
+    let h = s_tensor_input.shape[1];
 
-    let logits = tf.tidy(() =>
+    let out_tensors = tf.tidy(() =>
     {
         img_tensor1d = tf.tensor1d(img);
         img_tensor = img_tensor1d.reshape([h, w, 3]);
@@ -188,25 +163,27 @@ function exec_tfjs (img)
         return s_detect_model.predict(batched);
     });
 
-    return logits;
+    return out_tensors;
 }
 
 async function invoke_pose_detect (img)
 {
-    let logits  = exec_tfjs (img);
+    let out_tensors = exec_tfjs (img);
 
-    let score_thresh = 0.75;
-    let detect_result = [];
-    let region_list = [];
-    let w = s_detect_tensor_input.shape[2];
-    let h = s_detect_tensor_input.shape[1];
-    await decode_bounds (region_list, logits, score_thresh, w, h);
+    let pose_list = [];
+    let w = s_tensor_input.shape[2];
+    let h = s_tensor_input.shape[1];
+
+    /* currently, decoding of multiple poses is not implemented. */
+    //let score_thresh = 0.75;
+    //await decode_multiple_poses (pose_list, out_tensors, score_thresh, w, h);
+
+    await decode_single_pose (pose_list, out_tensors, w, h);
 
     /* release the resource of output tensor */
-    logits[0].dispose ();
-    logits[1].dispose ();
-    logits[2].dispose ();
+    for (let i = 0; i < out_tensors.length; i ++)
+        out_tensors[i].dispose();
 
-    return region_list;
+    return pose_list;
 }
 

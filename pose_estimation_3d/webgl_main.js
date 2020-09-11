@@ -7,7 +7,6 @@
 let s_debug_log;
 let s_rtarget_main;
 let s_rtarget_feed;
-let s_rtarget_src;
 
 
 /*
@@ -66,7 +65,7 @@ function init_stats ()
 function
 generate_input_image (gl, texid, src_w, src_h, win_w, win_h)
 {
-    let dims = get_pose_detect_input_dims ();
+    let dims = get_pose3d_input_dims ();
     let buf_rgba = new Uint8Array (dims.w * dims.h * 4);
     let buf_rgb  = new Uint8Array (dims.w * dims.h * 3);
 
@@ -491,10 +490,8 @@ function on_resize (gl)
 
     GLUtil.destroy_render_target (gl, s_rtarget_main);
     GLUtil.destroy_render_target (gl, s_rtarget_feed);
-    GLUtil.destroy_render_target (gl, s_rtarget_src);
     s_rtarget_main = GLUtil.create_render_target (gl, w, h, 0);
     s_rtarget_feed = GLUtil.create_render_target (gl, w, h, 1);
-    s_rtarget_src  = GLUtil.create_render_target (gl, w, h, 1);
 }
 
 function check_resize_canvas (gl, canvas)
@@ -566,12 +563,11 @@ async function startWebGL()
     //const stats = init_stats ();
 
 
-    await init_tfjs_blazepose ();
+    await init_tfjs_pose3d ();
     //s_debug_log.innerHTML = "tfjs.Backend = " + tf.getBackend() + "<br>"
 
     s_rtarget_main = GLUtil.create_render_target (gl, win_w, win_h, 0);
     s_rtarget_feed = GLUtil.create_render_target (gl, win_w, win_w, 1);
-    s_rtarget_src  = GLUtil.create_render_target (gl, win_w, win_w, 1);
 
     /* stop loading spinner */
     const spinner = document.getElementById('loading');

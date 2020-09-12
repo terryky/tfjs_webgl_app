@@ -6,7 +6,7 @@
         H E A D
   ------------------------------------------------------------------>
 <head>
-    <title>WebGL Example</title>
+    <title>TensorFlow.js + WebGL Example</title>
     <meta charset="utf-8">
 
     <style>
@@ -20,6 +20,7 @@
             height: 100vh;
         }
     </style>
+    <link rel="stylesheet" href="css/loading1.css" type="text/css">
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script>
@@ -31,13 +32,17 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose@0.0.6"></script>
     --------------------------------------------------------------------------------------------->
 
+    <script type="text/javascript" src="../third_party/stats.min.js"></script>
+    <script type="text/javascript" src="../third_party/dat.gui.min.js"></script>
+
     <script type="text/javascript" src="../common/util_shader.js"></script>
     <script type="text/javascript" src="../common/util_matrix.js"></script>
     <script type="text/javascript" src="../common/util_texture.js"></script>
     <script type="text/javascript" src="../common/util_render2d.js"></script>
     <script type="text/javascript" src="../common/util_debugstr.js"></script>
     <script type="text/javascript" src="../common/util_pmeter.js"></script>
-    <script type="text/javascript" src="../third_party/stats.min.js"></script>
+
+    <script type="text/javascript" src="touch_event.js"></script>
     <script type="text/javascript" src="shapes.js"></script>
     <script type="text/javascript" src="render_handpose.js"></script>
     <script type="text/javascript" src="webgl_main.js"></script>
@@ -47,6 +52,10 @@
         B O D Y
   ------------------------------------------------------------------>
 <body onload="startWebGL();">
+    <div id="loading">
+      <div class="spinner"></div>
+    </div>
+
     <center>
     <canvas id="glcanvas"></canvas>
     </center>

@@ -122,7 +122,7 @@ generate_input_image (gl, texid, src_w, src_h, win_w, win_h)
 
 
 function
-compute_3d_skelton_pos (dst_pose, texw, texh, src_pose)
+compute_3d_skelton_pos (dst_pose, src_pose)
 {
     /*
      *  because key3d[kNeck] is always zero,
@@ -217,11 +217,9 @@ render_skelton_3d (gl, landmarks)
     let col_gray   = [0.0, 0.0, 0.0, 0.1];
     let col_node   = [1.0, 1.0, 1.0, 1.0];
 
-    let vp = gl.getParameter(gl.VIEWPORT);
-
     let pose_draw = {};
     pose_draw.key3d = [];
-    compute_3d_skelton_pos (pose_draw, vp[2], vp[3], landmarks);
+    compute_3d_skelton_pos (pose_draw, landmarks);
 
     let pose = pose_draw;
     for (let is_shadow = 1; is_shadow >= 0; is_shadow --)

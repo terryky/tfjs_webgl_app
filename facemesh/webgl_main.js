@@ -45,7 +45,7 @@ function init_stats ()
  *                      +------+
  */
 function
-generate_input_image (gl, src_w, src_h, win_w, win_h)
+calc_size_to_fit (gl, src_w, src_h, win_w, win_h)
 {
     let win_aspect = win_w / win_h;
     let tex_aspect = src_w / src_h;
@@ -71,8 +71,8 @@ generate_input_image (gl, src_w, src_h, win_w, win_h)
     }
 
     let region = {
-        width  : scaled_w,  /* full rect width  with margin */
-        height : scaled_h,  /* full rect height with margin */
+        width  : win_w,     /* full rect width  with margin */
+        height : win_h,     /* full rect height with margin */
         tex_x  : offset_x,  /* start position of valid texture */
         tex_y  : offset_y,  /* start position of valid texture */
         tex_w  : scaled_w,  /* width  of valid texture */
@@ -82,18 +82,6 @@ generate_input_image (gl, src_w, src_h, win_w, win_h)
     return region;
 }
 
-
-
-
-
-function render_2d_bone (gl, landmarks, idx0, idx1, scale, ox, oy)
-{
-    let color = [1.0, 1.0, 1.0, 1.0]
-    let p0 = landmarks[idx0];
-    let p1 = landmarks[idx1];
-    r2d.draw_2d_line (gl, p0[0] * scale + ox, p0[1] * scale + oy,
-                          p1[0] * scale + ox, p1[1] * scale + oy, color, 1);
-}
 
 function 
 render_2d_scene (gl, texid, face_predictions, tex_w, tex_h,
@@ -377,7 +365,7 @@ function startWebGL()
                 for (let i = 0; i < 5; i ++) /* repeat 5 times to flush pipeline ? */
                     mask_predictions = await facemesh_model.estimateFaces (masktex.image);
                 mask_init_done = true;
-                s_masktex_region = generate_input_image (gl, masktex.image.width, masktex.image.height, 150, 150);
+                s_masktex_region = calc_size_to_fit (gl, masktex.image.width, masktex.image.height, 150, 150);
                 mask_updated = true;
             }
 
@@ -397,7 +385,7 @@ function startWebGL()
                         mask_predictions = await facemesh_model.estimateFaces (masktex_next.image);
                     mask_update_req = false;
                     masktex = masktex_next;
-                    s_masktex_region = generate_input_image (gl, masktex.image.width, masktex.image.height, 150, 150);
+                    s_masktex_region = calc_size_to_fit (gl, masktex.image.width, masktex.image.height, 150, 150);
                     mask_updated = true;
                 }
             }
@@ -421,7 +409,7 @@ function startWebGL()
         /* --------------------------------------- *
          *  invoke TF.js (Facemesh)
          * --------------------------------------- */
-        s_srctex_region = generate_input_image (gl, src_w, src_h, win_w, win_h);
+        s_srctex_region = calc_size_to_fit (gl, src_w, src_h, win_w, win_h);
         let face_predictions = {length: 0};
         let time_invoke0 = 0;
 

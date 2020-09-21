@@ -7,13 +7,16 @@ var render = {}
 render.strVS = `
     attribute vec4  a_Vertex;
     attribute vec2  a_TexCoord;
+    attribute float a_vtxalpha;
     uniform   mat4  u_PMVMatrix;
     varying   vec2  v_texcoord;
+    varying   float v_vtxalpha;
 
     void main(void)
     {
         gl_Position = u_PMVMatrix * a_Vertex;
         v_texcoord  = a_TexCoord;
+        v_vtxalpha  = a_vtxalpha;
     }
 `;
 
@@ -23,6 +26,7 @@ render.strFS = `
     uniform vec3    u_color;
     uniform float   u_alpha;
     varying vec2    v_texcoord;
+    varying float   v_vtxalpha;
     uniform sampler2D u_sampler;
 
     void main(void)
@@ -30,20 +34,62 @@ render.strFS = `
         vec3 color;
         color = vec3(texture2D(u_sampler, v_texcoord));
         color *= u_color;
-        gl_FragColor = vec4(color, u_alpha);
+        gl_FragColor = vec4(color, v_vtxalpha * u_alpha);
     }
 `;
 
 
+function create_vbo_alpha_array (gl, tris)
+{
+    /*
+     *  Vertex indices are from:
+     *      https://github.com/tensorflow/tfjs-models/blob/master/facemesh/src/keypoints.ts
+     */
+    const face_countour_idx = [
+        10,  338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
+        397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
+        172, 58,  132, 93,  234, 127, 162, 21,  54,  103, 67,  109
+    ];
+
+    let vtx_counts = tris.length;
+    let alpha_array = new Array(vtx_counts);
+
+    for (let i = 0; i < vtx_counts; i ++)
+    {
+        let alpha = 1.0;
+        for (let j = 0; j < face_countour_idx.length; j ++)
+        {
+            if (i == face_countour_idx[j])
+            {
+                alpha = 0.0;
+                break;
+            }
+        }
+        alpha_array[i] = alpha;
+    }
+
+    let vbo_alpha = gl.createBuffer();
+    gl.bindBuffer (gl.ARRAY_BUFFER, vbo_alpha);
+    gl.bufferData (gl.ARRAY_BUFFER, new Float32Array(alpha_array), gl.STATIC_DRAW);
+
+    return vbo_alpha;
+}
+
 function init_facemesh_render (gl, w, h)
 {
     render.sobj = GLUtil.generate_shader (gl, render.strVS, render.strFS);
+    render.loc_vtxalpha= gl.getAttribLocation  (render.sobj.program, "a_vtxalpha");
     render.loc_mtx_pmv = gl.getUniformLocation (render.sobj.program, "u_PMVMatrix" );
     render.loc_color   = gl.getUniformLocation (render.sobj.program, "u_color" );
     render.loc_alpha   = gl.getUniformLocation (render.sobj.program, "u_alpha" );
 
-    render.matPrj = new Array(16);
-    matrix_proj_perspective (render.matPrj, 72.0, w / h, 1, 10000);
+    render.matPrj = [
+         0, 0, 0, 0,
+         0, 0, 0, 0,
+         0, 0, 0, 0,
+        -1, 1, 0, 1];
+    render.matPrj[0] =  2.0 / w;
+    render.matPrj[5] = -2.0 / h;
 
     render.texid_dummy = GLUtil.create_image_texture (gl, "../assets/white.png");
 
@@ -58,15 +104,14 @@ function init_facemesh_render (gl, w, h)
     gl.bindBuffer (gl.ELEMENT_ARRAY_BUFFER, render.vbo_idx2);
     gl.bufferData (gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(render.s_face_wo_eyes_tris), gl.STATIC_DRAW);
 
-    render.win_w = w;
-    render.win_h = h;
+    render.vbo_alpha  = create_vbo_alpha_array (gl, render.s_face_tris);
+    render.vbo_alpha2 = create_vbo_alpha_array (gl, render.s_face_wo_eyes_tris);
 }
 
 function resize_facemesh_render (gl, w, h)
 {
-    matrix_proj_perspective (render.matPrj, 72.0, w / h, 1, 10000);
-    render.win_w = w;
-    render.win_h = h;
+    render.matPrj[0] =  2.0 / w;
+    render.matPrj[5] = -2.0 / h;
 }
 
 
@@ -76,14 +121,6 @@ draw_facemesh_tri_tex (gl, texid, vtx, uv, color, drill_eye_hole)
 {
     let matMV     = new Array(16);
     let matPMV    = new Array(16);
-    let matPrj    = [
-         0, 0, 0, 0,
-         0, 0, 0, 0,
-         0, 0, 0, 0, 
-        -1, 1, 0, 1];
-
-    matPrj[0] =  2.0 / render.win_w;
-    matPrj[5] = -2.0 / render.win_h;
 
     gl.enable (gl.CULL_FACE);
 
@@ -91,6 +128,7 @@ draw_facemesh_tri_tex (gl, texid, vtx, uv, color, drill_eye_hole)
 
     gl.enableVertexAttribArray (render.sobj.loc_vtx);
     gl.enableVertexAttribArray (render.sobj.loc_uv );
+    gl.enableVertexAttribArray (render.loc_vtxalpha);
 
     gl.bindBuffer (gl.ARRAY_BUFFER, render.vbo_vtx);
     gl.bufferData (gl.ARRAY_BUFFER, new Float32Array(vtx), gl.STATIC_DRAW);
@@ -105,15 +143,21 @@ draw_facemesh_tri_tex (gl, texid, vtx, uv, color, drill_eye_hole)
     {
         gl.bindBuffer (gl.ELEMENT_ARRAY_BUFFER, render.vbo_idx2);
         vtx_counts = render.s_face_wo_eyes_tris.length;
+
+        gl.bindBuffer (gl.ARRAY_BUFFER, render.vbo_alpha2);
+        gl.vertexAttribPointer (render.loc_vtxalpha, 1, gl.FLOAT, false, 0, 0);
     }
     else
     {
         gl.bindBuffer (gl.ELEMENT_ARRAY_BUFFER, render.vbo_idx);
         vtx_counts = render.s_face_tris.length;
+
+        gl.bindBuffer (gl.ARRAY_BUFFER, render.vbo_alpha);
+        gl.vertexAttribPointer (render.loc_vtxalpha, 1, gl.FLOAT, false, 0, 0);
     }
 
     matrix_identity (matMV);
-    matrix_mult (matPMV, matPrj, matMV);
+    matrix_mult (matPMV, render.matPrj, matMV);
 
     gl.uniformMatrix4fv (render.loc_mtx_pmv, false, matPMV);
     gl.uniform3f (render.loc_color, color[0], color[1], color[2]);
@@ -129,7 +173,10 @@ draw_facemesh_tri_tex (gl, texid, vtx, uv, color, drill_eye_hole)
 }
 
 
-
+/*
+ *  Vertex indices are from:
+ *      https://github.com/tensorflow/tfjs-models/blob/master/facemesh/src/keypoints.ts
+ */
 render.s_face_tris = [
     127, 34, 139, 11, 0, 37, 232, 231, 120, 72, 37, 39, 128, 121, 47, 232, 121,
     128, 104, 69, 67, 175, 171, 148, 157, 154, 155, 118, 50, 101, 73, 39, 40, 9,

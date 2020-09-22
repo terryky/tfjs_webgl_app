@@ -9,6 +9,14 @@ let s_rtarget_main;
 let s_rtarget_feed;
 let s_rtarget_src;
 
+class GuiProperty {
+    constructor() {
+        this.draw_roi_rect = false;
+        this.draw_pmeter   = false;
+    }
+}
+const s_gui_prop = new GuiProperty();
+
 function init_stats ()
 {
     var stats = new Stats();
@@ -305,11 +313,20 @@ generate_squared_src_image (gl, texid, src_w, src_h, win_w, win_h)
     }
 
     GLUtil.set_render_target (gl, s_rtarget_src);
-    gl.clearColor (0.0, 0.0, 0.0, 1.0);
+    gl.clearColor (0.7, 0.7, 0.7, 1.0);
     gl.clear (gl.COLOR_BUFFER_BIT);
     r2d.draw_2d_texture (gl, texid, offset_x, offset_y, scaled_w, scaled_h, 1)
 }
 
+
+function
+init_gui ()
+{
+    const gui = new dat.GUI();
+
+    gui.add (s_gui_prop, 'draw_roi_rect');
+    gui.add (s_gui_prop, 'draw_pmeter');
+}
 
 /* ---------------------------------------------------------------- *
  *      M A I N    F U N C T I O N
@@ -328,6 +345,8 @@ async function startWebGL()
 
     gl.clearColor (0.7, 0.7, 0.7, 1.0);
     gl.clear (gl.COLOR_BUFFER_BIT);
+
+    init_gui ();
 
     const camtex = GLUtil.create_camera_texture (gl);
     //const camtex = GLUtil.create_video_texture (gl, "pexels_dance.mp4");
@@ -410,30 +429,37 @@ async function startWebGL()
         gl.clear (gl.COLOR_BUFFER_BIT);
 
         r2d.draw_2d_texture (gl, texid, 0, 0, win_w, win_h, 0)
-        render_detect_region (gl, 0, 0, win_w, win_h, predictions);
+
+        if (s_gui_prop.draw_roi_rect)
+        {
+            render_detect_region (gl, 0, 0, win_w, win_h, predictions);
+
+            /* draw cropped image of the pose area */
+            for (let pose_id = 0; pose_id < predictions.length; pose_id ++)
+            {
+                let w = 100;
+                let h = 100;
+                let x = win_w - w - 10;
+                let y = h * pose_id + 20;
+                let col_white = [1.0, 1.0, 1.0, 1.0];
+
+                render_cropped_pose_image (gl, texid, x, y, w, h, predictions, pose_id);
+                r2d.draw_2d_rect (gl, x, y, w, h, col_white, 2.0);
+            }
+        }
 
         for (let pose_id = 0; pose_id < predictions.length; pose_id ++)
         {
             render_pose_landmark (gl, 0, 0, win_w, win_h, landmark_ret, predictions, pose_id);
         }
 
-        /* draw cropped image of the pose area */
-        for (let pose_id = 0; pose_id < predictions.length; pose_id ++)
-        {
-            let w = 100;
-            let h = 100;
-            let x = win_w - w - 10;
-            let y = h * pose_id + 20;
-            let col_white = [1.0, 1.0, 1.0, 1.0];
-
-            render_cropped_pose_image (gl, texid, x, y, w, h, predictions, pose_id);
-            r2d.draw_2d_rect (gl, x, y, w, h, col_white, 2.0);
-        }
-
         /* --------------------------------------- *
          *  post process
          * --------------------------------------- */
-        pmeter.draw_pmeter (gl, 0, 40);
+        if (s_gui_prop.draw_pmeter)
+        {
+            pmeter.draw_pmeter (gl, 0, 40);
+        }
 
         let str = "Interval: " + interval_ms.toFixed(1) + " [ms]";
         dbgstr.draw_dbgstr (gl, str, 10, 10);

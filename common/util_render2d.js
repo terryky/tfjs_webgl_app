@@ -5,6 +5,9 @@
 var r2d = {};
 r2d.tparam = {};
 
+r2d.FLIP_V = 1;
+r2d.FLIP_H = 2;
+
 /* ------------------------------------------------------ *
  *  shader for FillColor
  * ------------------------------------------------------ */
@@ -70,17 +73,29 @@ var varray = [
     1.0, 0.0,
     1.0, 1.0 ];
 
-var tarray = [
-    0.0, 0.0,
-    0.0, 1.0,
-    1.0, 0.0,
-    1.0, 1.0 ];
+var tarray0 = [
+    0.0, 0.0,   //  0 +-----+ 2
+    0.0, 1.0,   //    |     |
+    1.0, 0.0,   //    |     |
+    1.0, 1.0 ]; //  1 +-----+ 3
+
+var tarray1 = [
+    0.0, 1.0,   //  1 +-----+ 3     Vertical Flip
+    0.0, 0.0,   //    |     |
+    1.0, 1.0,   //    |     |
+    1.0, 0.0 ]; //  0 +-----+ 2
 
 var tarray2 = [
-    0.0, 1.0,
-    0.0, 0.0,
-    1.0, 1.0,
-    1.0, 0.0 ];
+    1.0, 0.0,   //  2 +-----+ 0     Horizontal Flip
+    1.0, 1.0,   //    |     |
+    0.0, 0.0,   //    |     |
+    0.0, 1.0 ]; //  3 +-----+ 1
+
+var tarray3 = [
+    1.0, 1.0,   //  3 +-----+ 1     Vertical & Horizontal Flip
+    1.0, 0.0,   //    |     |
+    0.0, 1.0,   //    |     |
+    0.0, 0.0 ]; //  2 +-----+ 0
 
 var s_matprj = [
      0.0, 0.0, 0.0, 0.0,
@@ -129,7 +144,7 @@ r2d.draw_2d_texture_in = function (gl)
     let rot   = r2d.tparam.rot;
     let sobj  = r2d.sobj[ttype];
     let matrix = new Array(16);
-    let uv    = tarray;
+    let uv    = tarray0;
 
     gl.useProgram (sobj.program);
     gl.uniform1i (sobj.loc_smp, 0);
@@ -140,7 +155,13 @@ r2d.draw_2d_texture_in = function (gl)
         break;
     case 1:     /* tex      */
         gl.bindTexture (gl.TEXTURE_2D, texid);
-        uv = r2d.tparam.upsidedown ? tarray2 : tarray;
+        switch (r2d.tparam.upsidedown)
+        {
+        case r2d.FLIP_V: uv = tarray1; break;
+        case r2d.FLIP_H: uv = tarray2; break;
+        case r2d.FLIP_V | r2d.FLIP_H: uv = tarray3; break;
+        default:uv = tarray0; break;
+        }
         break;
     default:
         break;

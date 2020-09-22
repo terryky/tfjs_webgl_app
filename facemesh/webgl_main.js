@@ -12,6 +12,7 @@ class GuiProperty {
     constructor() {
         this.srcimg_scale = 1.0;
         this.mask_alpha   = 0.7;
+        this.flip_horizontal = true;
         this.mask_eye_hole = false;
         this.draw_pmeter = false;
     }
@@ -94,10 +95,12 @@ render_2d_scene (gl, texid, face_predictions, tex_w, tex_h,
     let tw = s_srctex_region.tex_w;
     let th = s_srctex_region.tex_h;
     let scale = s_srctex_region.scale;
+    let flip_h = s_gui_prop.flip_horizontal;
 
     gl.disable (gl.DEPTH_TEST);
 
-    r2d.draw_2d_texture (gl, texid, tx, ty, tw, th, 0)
+    let flip = flip_h ? r2d.FLIP_H : 0
+    r2d.draw_2d_texture (gl, texid, tx, ty, tw, th, flip)
 
     let mask_color = [1.0, 1.0, 1.0, s_gui_prop.mask_alpha];
     if (s_is_dragover)
@@ -124,10 +127,15 @@ render_2d_scene (gl, texid, face_predictions, tex_w, tex_h,
                 let q = mask_keypoints[i];
                 face_uv [2 * i + 0] = q[0] / masktex.image.width;
                 face_uv [2 * i + 1] = q[1] / masktex.image.height;
+
+                if (flip_h)
+                {
+                    face_vtx[3 * i + 0] = (tex_w - p[0]) * scale + tx;
+                }
             }
 
             let eye_hole = s_gui_prop.mask_eye_hole;
-            draw_facemesh_tri_tex (gl, masktex.texid, face_vtx, face_uv, mask_color, eye_hole)
+            draw_facemesh_tri_tex (gl, masktex.texid, face_vtx, face_uv, mask_color, eye_hole, flip_h)
         }
     }
 
@@ -234,6 +242,7 @@ init_gui ()
 
     gui.add (s_gui_prop, 'srcimg_scale', 0, 5.0);
     gui.add (s_gui_prop, 'mask_alpha', 0.0, 1.0);
+    gui.add (s_gui_prop, 'flip_horizontal');
     gui.add (s_gui_prop, 'mask_eye_hole');
     gui.add (s_gui_prop, 'draw_pmeter');
 }

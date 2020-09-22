@@ -117,12 +117,14 @@ function resize_facemesh_render (gl, w, h)
 
 
 function
-draw_facemesh_tri_tex (gl, texid, vtx, uv, color, drill_eye_hole)
+draw_facemesh_tri_tex (gl, texid, vtx, uv, color, drill_eye_hole, flip_h)
 {
     let matMV     = new Array(16);
     let matPMV    = new Array(16);
 
     gl.enable (gl.CULL_FACE);
+    if (flip_h)
+        gl.frontFace (gl.CW);
 
     gl.useProgram (render.sobj.program);
 
@@ -170,6 +172,7 @@ draw_facemesh_tri_tex (gl, texid, vtx, uv, color, drill_eye_hole)
     gl.drawElements (gl.TRIANGLES, vtx_counts, gl.UNSIGNED_SHORT, 0);
 
     gl.disable (gl.BLEND);
+    gl.frontFace (gl.CCW);
 }
 
 

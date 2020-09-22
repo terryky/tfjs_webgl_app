@@ -13,9 +13,13 @@ Live demo is [here](https://terryky.github.io/tfjs_webgl_app/pose_estimation_3d)
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/facemesh).<br>
 [<img src="facemesh/facemesh.gif" width=400>](https://terryky.github.io/tfjs_webgl_app/facemesh)
 
-## Blazepose
+## Blazepose (upper_body)
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/blazepose).<br>
 [<img src="blazepose/blazepose.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/blazepose)
+
+## Blazepose (full_body)
+Live demo is [here](https://terryky.github.io/tfjs_webgl_app/blazepose_fullbody).<br>
+[<img src="blazepose_fullbody/blazepose_fullbody.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/blazepose_fullbody)
 
 ## Classification
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/classification).<br>

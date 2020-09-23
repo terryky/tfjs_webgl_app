@@ -26,6 +26,7 @@ class GuiProperty {
         this.joint_radius = 6;
         this.bone_radius  = 2;
         this.srcimg_scale = 0.4;
+        this.flip_horizontal = true;
         this.draw_axis   = false;
         this.draw_pmeter = false;
     }
@@ -330,20 +331,22 @@ render_2d_scene (gl, texid, hand_predictions, tex_w, tex_h)
     let tw = tex_w * scale;
     let th = tex_h * scale;
 
-    r2d.draw_2d_texture (gl, texid, tx, ty, tw, th, 0)
+    let flip = s_gui_prop.flip_horizontal ? r2d.FLIP_H : 0
+    r2d.draw_2d_texture (gl, texid, tx, ty, tw, th, flip)
     r2d.draw_2d_rect (gl, tx, ty, tw, th, [0.0, 1.0, 1.0, 1.0], 3.0);
 
     for (let i = 0; i < hand_predictions.length; i++) 
     {
         const landmarks = hand_predictions[i].landmarks;
 
-        for (let i = 0; i < landmarks.length; i++)
+        for (let j = 0; j < landmarks.length; j++)
         {
-            let p = landmarks[i];
+            let p = landmarks[j];
             x = p[0] * scale + tx;
             y = p[1] * scale + ty;
+
             r2d.draw_2d_fillrect (gl, x - radius/2, y - radius/2, radius,  radius, color);
-            if (i == 0)
+            if (j == 0)
             {
                 let str = p[0].toFixed(1) + ", " + p[1].toFixed(1) + ", " + p[2].toFixed(1);
                 dbgstr.draw_dbgstr (gl, str, x, y);
@@ -358,13 +361,28 @@ render_2d_scene (gl, texid, hand_predictions, tex_w, tex_h)
         render_2d_bone (gl, landmarks,  9, 13, scale, tx, ty);
         render_2d_bone (gl, landmarks, 13, 17, scale, tx, ty);
 
-        for (let i = 0; i < 5; i ++)
+        for (let j = 0; j < 5; j ++)
         {
-            let idx0 = 4 * i + 1;
+            let idx0 = 4 * j + 1;
             let idx1 = idx0 + 1;
             render_2d_bone (gl, landmarks, idx0,  idx1  , scale, tx, ty);
             render_2d_bone (gl, landmarks, idx0+1,idx1+1, scale, tx, ty);
             render_2d_bone (gl, landmarks, idx0+2,idx1+2, scale, tx, ty);
+        }
+    }
+}
+
+function
+flip_h_predictions (hand_predictions, tex_w)
+{
+    for (let i = 0; i < hand_predictions.length; i++)
+    {
+        let landmarks = hand_predictions[i].landmarks;
+
+        for (let j = 0; j < landmarks.length; j++)
+        {
+            let p = landmarks[j];
+            p[0] = (tex_w - p[0]);
         }
     }
 }
@@ -451,6 +469,7 @@ init_gui ()
     gui.add (s_gui_prop, 'joint_radius', 0, 20);
     gui.add (s_gui_prop, 'bone_radius',  0, 20);
     gui.add (s_gui_prop, 'srcimg_scale', 0, 5.0);
+    gui.add (s_gui_prop, 'flip_horizontal');
     gui.add (s_gui_prop, 'draw_axis');
     gui.add (s_gui_prop, 'draw_pmeter');
 }
@@ -558,11 +577,18 @@ function startWebGL()
             current_phase = 2;
             let time_invoke0_start = performance.now();
 
+            //let flip_h = s_gui_prop.flip_horizontal;
+            let flip_h = false;
             if (GLUtil.is_camera_ready(camtex))
-                hand_predictions = await handpose_model.estimateHands (camtex.video);
+                hand_predictions = await handpose_model.estimateHands (camtex.video, flip_h);
             else
-                hand_predictions = await handpose_model.estimateHands (imgtex.image);
+                hand_predictions = await handpose_model.estimateHands (imgtex.image, flip_h);
             time_invoke0 = performance.now() - time_invoke0_start;
+
+            if (s_gui_prop.flip_horizontal)
+            {
+                flip_h_predictions (hand_predictions, src_w);
+            }
         }
 
         /* --------------------------------------- *

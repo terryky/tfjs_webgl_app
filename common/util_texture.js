@@ -17,6 +17,15 @@ GLUtil.create_texture = function (gl)
     return texid;
 }
 
+GLUtil.create_2d_texture = function (gl, imgbuf, width, height)
+{
+    let texid = GLUtil.create_texture (gl);
+    gl.bindTexture (gl.TEXTURE_2D, texid);
+    gl.texImage2D (gl.TEXTURE_2D, 0, gl.RGBA, width, height,
+                                  0, gl.RGBA, gl.UNSIGNED_BYTE, imgbuf);
+    return texid;
+}
+
 
 /* ---------------------------------------------------------------- *
  *  Create Image Texture

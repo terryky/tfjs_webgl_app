@@ -12,6 +12,7 @@ let s_rtarget_src;
 class GuiProperty {
     constructor() {
         this.mask_alpha    = 0.9;
+        this.flip_horizontal = true;
         this.draw_roi_rect = false;
         this.draw_pmeter   = false;
     }
@@ -281,7 +282,10 @@ generate_squared_src_image (gl, texid, src_w, src_h, win_w, win_h)
     GLUtil.set_render_target (gl, s_rtarget_src);
     gl.clearColor (0.7, 0.7, 0.7, 1.0);
     gl.clear (gl.COLOR_BUFFER_BIT);
-    r2d.draw_2d_texture (gl, texid, offset_x, offset_y, scaled_w, scaled_h, 1)
+
+    let flip = r2d.FLIP_V;
+    flip |= s_gui_prop.flip_horizontal ? r2d.FLIP_H : 0
+    r2d.draw_2d_texture (gl, texid, offset_x, offset_y, scaled_w, scaled_h, flip)
 }
 
 
@@ -291,6 +295,7 @@ init_gui ()
     const gui = new dat.GUI();
 
     gui.add (s_gui_prop, 'mask_alpha', 0.0, 1.0);
+    gui.add (s_gui_prop, 'flip_horizontal');
     gui.add (s_gui_prop, 'draw_roi_rect');
     gui.add (s_gui_prop, 'draw_pmeter');
 }

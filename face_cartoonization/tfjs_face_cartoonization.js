@@ -372,6 +372,17 @@ async function invoke_pose_detect (img)
 function invoke_pose_detect_stub ()
 {
     let region = [];
+
+    region.score           = 1;
+    region.topleft         = {x: 0, y: 0};
+    region.btmright        = {x: 1, y: 1};
+    region.keys[kRightEye] = {x: 0, y: 0};
+    region.keys[kLeftEye]  = {x: 0, y: 0};
+    region.keys[kNose]     = {x: 0, y: 0};
+    region.keys[kMouth]    = {x: 0, y: 0};
+    region.keys[kRightEar] = {x: 0, y: 0};
+    region.keys[kLeftEar]  = {x: 0, y: 0};
+
     region.rotation     = 0;
     region.roi_center   = {x: 0.5, y: 0.5};
     region.roi_size     = {x: 1.0, y: 1.0};

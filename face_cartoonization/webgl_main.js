@@ -13,6 +13,7 @@ class GuiProperty {
     constructor() {
         this.mask_alpha    = 1.0;
         this.flip_horizontal = true;
+        this.detect_face   = false;
         this.draw_roi_rect = false;
         this.draw_pmeter   = false;
     }
@@ -284,6 +285,7 @@ init_gui ()
 
     gui.add (s_gui_prop, 'mask_alpha', 0.0, 1.0);
     gui.add (s_gui_prop, 'flip_horizontal');
+    gui.add (s_gui_prop, 'detect_face');
     gui.add (s_gui_prop, 'draw_roi_rect');
     gui.add (s_gui_prop, 'draw_pmeter');
 }
@@ -363,7 +365,7 @@ async function startWebGL()
          * --------------------------------------- */
         let time_invoke0 = 0;
         let detections;
-        if (0)
+        if (s_gui_prop.detect_face)
         {
             let feed_image = generate_detect_input_image (gl, texid, win_w, win_h);
 

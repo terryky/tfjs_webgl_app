@@ -373,7 +373,7 @@ async function invoke_pose_detect (img)
 /* -------------------------------------------------- *
  * Invoke TensorFlow.js (Face segmentation)
  * -------------------------------------------------- */
-function exec_tfjs_landmark (img)
+function exec_tfjs_segmentation (img)
 {
     let w = s_segment_tensor_input.shape[2];
     let h = s_segment_tensor_input.shape[1];
@@ -402,19 +402,19 @@ function exec_tfjs_landmark (img)
 async function 
 invoke_face_segmentation (img)
 {
-    let out_tensors = exec_tfjs_landmark (img);
+    let out_tensors = exec_tfjs_segmentation (img);
 
     let poseflag_ptr = await out_tensors.data();
     let w = s_segment_tensor_input.shape[2];
     let h = s_segment_tensor_input.shape[1];
 
-    let landmark_result = [];
-    landmark_result.segmentmap = poseflag_ptr.slice (); /* copy array data */
-    landmark_result.segmentmap_dims = [w, h];
+    let segmentation_result = [];
+    segmentation_result.segmentmap = poseflag_ptr.slice (); /* copy array data */
+    segmentation_result.segmentmap_dims = [w, h];
 
     /* release the resource of output tensor */
     out_tensors.dispose ();
 
-    return landmark_result;
+    return segmentation_result;
 }
 

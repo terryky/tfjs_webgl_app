@@ -25,6 +25,10 @@ Live demo is [here](https://terryky.github.io/tfjs_webgl_app/blazepose_fullbody)
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/face_segmentation).<br>
 [<img src="face_segmentation/face_segmentation.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/face_segmentation)
 
+## Depth Estimation (DenseDepth)
+Live demo is [here](https://terryky.github.io/tfjs_webgl_app/dense_depth).<br>
+[<img src="dense_depth/dense_depth.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/dense_depth)
+
 ## Classification
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/classification).<br>
 [<img src="classification/classification.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/classification)

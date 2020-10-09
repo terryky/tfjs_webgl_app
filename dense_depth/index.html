@@ -28,7 +28,9 @@
     <script type="text/javascript" src="../common/util_debugstr.js"></script>
     <script type="text/javascript" src="../common/util_pmeter.js"></script>
 
+    <script type="text/javascript" src="touch_event.js"></script>
     <script type="text/javascript" src="tfjs_dense_depth.js"></script>
+    <script type="text/javascript" src="render_dense_depth.js"></script>
     <script type="text/javascript" src="webgl_main.js"></script>
 </head>
 
@@ -37,14 +39,14 @@
   ------------------------------------------------------------------>
 <body onload="startWebGL();">
 
-    <h1>Dense Depth Estimation</h1>
+    <h1>Depth Estimation</h1>
 
     <div id="loading">
       <div class="spinner"></div>
     </div>
 
     <center>
-    <canvas id="glcanvas" width="800" height="800"></canvas>
+    <canvas id="glcanvas" width="800" height="600"></canvas>
     </center>
     <div id="debug_log"></div>
 </body>

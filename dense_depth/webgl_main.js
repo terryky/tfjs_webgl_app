@@ -11,10 +11,11 @@ let s_rtarget_src;
 
 class GuiProperty {
     constructor() {
-        this.pose_scale_x = 100;
-        this.pose_scale_y = 100;
-        this.pose_scale_z = 100;
-        this.camera_pos_z = 100;
+        this.pause_camera  = false;
+        this.depth_scale_x = 100;
+        this.depth_scale_y = 100;
+        this.depth_scale_z = 100;
+        this.camera_pos_z  = 100;
         this.depth_min     =  0.0;
         this.depth_max     = 10.0;
         this.render_fill   = false;
@@ -123,6 +124,7 @@ render_depth_image_3d (gl, texid, dense_depth_ret)
     if (s_is_first_render3d)
     {
         s_depth_mesh = create_mesh (gl, depthmap_w - 1, depthmap_h - 1);
+        s_is_first_render3d = false;
     }
     let vtx = s_depth_mesh.vtx_array;
     let uv  = s_depth_mesh.uv_array;
@@ -139,17 +141,17 @@ render_depth_image_3d (gl, texid, dense_depth_ret)
             {
                 d -= s_gui_prop.depth_min;
                 d /= s_gui_prop.depth_max;
-                d = (d * 2.0 - 1.0) * s_gui_prop.pose_scale_z;
+                d = (d * 2.0 - 1.0) * s_gui_prop.depth_scale_z;
             }
             else
             {
                 d = s_gui_prop.depth_max / d;   //  inf -> 1.0
                 d = 2 - d;                      // -inf -> 1.0
-                d = d * s_gui_prop.pose_scale_z;
+                d = d * s_gui_prop.depth_scale_z;
             }
 
-            vtx[3 * idx + 0] =  ((x / depthmap_h) * 2.0 - 1.0) * s_gui_prop.pose_scale_x;
-            vtx[3 * idx + 1] = -((y / depthmap_h) * 2.0 - 1.0) * s_gui_prop.pose_scale_y;
+            vtx[3 * idx + 0] =  ((x / depthmap_h) * 2.0 - 1.0) * s_gui_prop.depth_scale_x;
+            vtx[3 * idx + 1] = -((y / depthmap_h) * 2.0 - 1.0) * s_gui_prop.depth_scale_y;
             vtx[3 * idx + 2] =  d;
 
             uv [2 * idx + 0] = x / depthmap_w;
@@ -248,9 +250,9 @@ render_depth_image_3d (gl, texid, dense_depth_ret)
             for (let j = -1; j <= 1; j ++)
             {
                 let colb = [0.1, 0.5, 0.5, 0.5];
-                let dx = s_gui_prop.pose_scale_x;
-                let dy = s_gui_prop.pose_scale_y;
-                let dz = s_gui_prop.pose_scale_z;
+                let dx = s_gui_prop.depth_scale_x;
+                let dy = s_gui_prop.depth_scale_y;
+                let dz = s_gui_prop.depth_scale_z;
                 let v0 = [];
                 let v1 = [];
 
@@ -332,9 +334,10 @@ init_gui ()
 {
     const gui = new dat.GUI();
 
-    gui.add (s_gui_prop, 'pose_scale_x', 0, 1000);
-    gui.add (s_gui_prop, 'pose_scale_y', 0, 1000);
-    gui.add (s_gui_prop, 'pose_scale_z', 0, 1000);
+    gui.add (s_gui_prop, 'pause_camera');
+    gui.add (s_gui_prop, 'depth_scale_x', 0, 1000);
+    gui.add (s_gui_prop, 'depth_scale_y', 0, 1000);
+    gui.add (s_gui_prop, 'depth_scale_z', 0, 1000);
     gui.add (s_gui_prop, 'camera_pos_z', 0, 1000);
     gui.add (s_gui_prop, 'depth_min', 0.0, 10.0);
     gui.add (s_gui_prop, 'depth_max', 0.0, 10.0);
@@ -395,6 +398,8 @@ async function startWebGL()
     spinner.classList.add('loaded');
 
     let prev_time_ms = performance.now();
+    let need_invoke_tflite = true;
+    let dense_depth;
     async function render (now)
     {
         pmeter.reset_lap (0);
@@ -411,7 +416,11 @@ async function startWebGL()
         let texid = imgtex.texid;
         if (GLUtil.is_camera_ready(camtex))
         {
-            GLUtil.update_camera_texture (gl, camtex);
+            if (s_gui_prop.pause_camera == false)
+            {
+                GLUtil.update_camera_texture (gl, camtex);
+                need_invoke_tflite = true;
+            }
             src_w = camtex.video.videoWidth;
             src_h = camtex.video.videoHeight;
             texid = camtex.texid;
@@ -423,12 +432,17 @@ async function startWebGL()
         /* --------------------------------------- *
          *  invoke TF.js (Dense Depth estimation)
          * --------------------------------------- */
-        let dense_depth;
-        let feed_image = generate_dense_depth_input_image (gl, texid, win_w, win_h);
+        let time_invoke0 = 0;
+        if (need_invoke_tflite)
+        {
+            let feed_image = generate_dense_depth_input_image (gl, texid, win_w, win_h);
 
-        let time_invoke0_start = performance.now();
-        dense_depth = await invoke_dense_depth (feed_image);
-        let time_invoke0 = performance.now() - time_invoke0_start;
+            let time_invoke0_start = performance.now();
+            dense_depth = await invoke_dense_depth (feed_image);
+            time_invoke0 = performance.now() - time_invoke0_start;
+
+            need_invoke_tflite = false;
+        }
 
         /* --------------------------------------- *
          *  render scene

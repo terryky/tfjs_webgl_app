@@ -9,6 +9,7 @@ s_ev.mouse_enter = false;
 s_ev.clicked     = false;
 s_ev.mouse_pos   = {x:0, y:0};
 s_ev.mouse_pos0  = {x:0, y:0};
+s_ev.wheel_pos   = 0;
 s_ev.mdl_qtn     = new Array(4);
 s_ev.mdl_qtn0    = new Array(4);
 s_ev.mdl_mtx     = new Array(16);
@@ -88,6 +89,11 @@ function on_dblclick (event)
 {
     quaternion_identity (s_ev.mdl_qtn);
     quaternion_to_matrix (s_ev.mdl_mtx, s_ev.mdl_qtn);
+}
+
+function on_wheel (event)
+{
+    s_ev.wheel_pos += event.deltaY * 0.1;
 }
 
 /* ---------------------------------------------------------------- *
@@ -198,6 +204,7 @@ init_touch_event (canvas)
     canvas  .addEventListener ('mouseleave', on_mouse_leave);
     canvas  .addEventListener ('click',      on_click      );
     canvas  .addEventListener ('dblclick',   on_dblclick   );
+    canvas  .addEventListener ('wheel',      on_wheel      );
 
     canvas  .addEventListener ('touchstart' , on_touch_start);
     canvas  .addEventListener ('touchend'   , on_touch_end  );
@@ -212,5 +219,7 @@ init_touch_event (canvas)
 function
 get_touch_event_matrix ()
 {
+    quaternion_to_matrix (s_ev.mdl_mtx, s_ev.mdl_qtn);
+    s_ev.mdl_mtx[14] += s_ev.wheel_pos;
     return s_ev.mdl_mtx;
 }

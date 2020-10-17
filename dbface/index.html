@@ -1,0 +1,54 @@
+
+<!doctype html>
+<html lang="en">
+
+<!------------------------------------------------------------------
+        H E A D
+  ------------------------------------------------------------------>
+<head>
+    <title>TensorFlow.js + WebGL Example</title>
+    <meta charset="utf-8">
+
+    <link rel="stylesheet" href="css/loading1.css" type="text/css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script>
+
+    <script type="text/javascript" src="../third_party/stats.min.js"></script>
+    <script type="text/javascript" src="../third_party/dat.gui.min.js"></script>
+
+    <script type="text/javascript" src="../common/util_tfjs.js"></script>
+    <script type="text/javascript" src="../common/util_shader.js"></script>
+    <script type="text/javascript" src="../common/util_matrix.js"></script>
+    <script type="text/javascript" src="../common/util_texture.js"></script>
+    <script type="text/javascript" src="../common/util_render2d.js"></script>
+    <script type="text/javascript" src="../common/util_render_target.js"></script>
+    <script type="text/javascript" src="../common/util_debugstr.js"></script>
+    <script type="text/javascript" src="../common/util_pmeter.js"></script>
+
+    <script type="text/javascript" src="glue_mediapipe.js"></script>
+    <script type="text/javascript" src="tfjs_dbface.js"></script>
+    <script type="text/javascript" src="webgl_main.js"></script>
+</head>
+
+<!------------------------------------------------------------------
+        B O D Y
+  ------------------------------------------------------------------>
+<body onload="startWebGL();">
+
+    <h1>Face Detection (DBFace)</h1>
+
+    <div id="loading">
+      <div class="spinner"></div>
+    </div>
+
+    <center>
+    <canvas id="glcanvas" width="800" height="600"></canvas>
+    </center>
+    <div id="debug_log"></div>
+</body>
+
+
+</html>

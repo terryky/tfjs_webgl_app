@@ -29,6 +29,10 @@ Live demo is [here](https://terryky.github.io/tfjs_webgl_app/face_segmentation).
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/dense_depth).<br>
 [<img src="dense_depth/dense_depth.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/dense_depth)
 
+## Higher Accuracy Face Detection (DBFace)
+Live demo is [here](https://terryky.github.io/tfjs_webgl_app/dbface).<br>
+[<img src="dbface/dbface.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/dbface)
+
 ## Classification
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/classification).<br>
 [<img src="classification/classification.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/classification)
@@ -39,4 +43,6 @@ Live demo is [here](https://terryky.github.io/tfjs_webgl_app/classification).<br
 - https://github.com/google/mediapipe
 - https://github.com/openvinotoolkit/open_model_zoo/tree/master/demos/python_demos/human_pose_estimation_3d_demo
 - https://github.com/MaybeShewill-CV/bisenetv2-tensorflow
+- https://github.com/ialhashim/DenseDepth
+- https://github.com/dlunion/DBFace
 - https://github.com/PINTO0309/PINTO_model_zoo

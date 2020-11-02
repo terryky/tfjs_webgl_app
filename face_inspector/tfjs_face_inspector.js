@@ -386,8 +386,9 @@ function exec_tfjs_age_gender (img)
         // normalize [0, 255] to [0, 1].
         let min = 0;
         let max = 1;
-        let normalized = img_tensor.toFloat().mul((max - min)/255.0).add(min);
-        normalized = tf.mul(normalized, [255.0]);
+        //let normalized = img_tensor.toFloat().mul((max - min)/255.0).add(min);
+        //normalized = tf.mul(normalized, [255.0]);
+        let normalized = img_tensor.toFloat();
 
         // resize, reshape
         let batched = normalized.reshape([-1, w, h, 3]);

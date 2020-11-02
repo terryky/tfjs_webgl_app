@@ -135,19 +135,18 @@ render_detect_region (gl, ofstx, ofsty, texw, texh, detection, ages)
         /* rectangle region */
         r2d.draw_2d_rect (gl, x1, y1, x2-x1, y2-y1, col_frame, 2.0);
 
-        /* score */
-        //let buf = "" + (score * 100).toFixed(0);
-        //dbgstr.draw_dbgstr_ex (gl, buf, x1, y1, 1.0, col_white, col_frame);
-        //y1 += 22;
-
         /* age */
         let age = ages[i].age;
 
         buf += (age + 0.5).toFixed(0) + "yrs";
-        dbgstr.draw_dbgstr_ex (gl, buf, x1, y1-(22*1.5), 1.5, col_white, col_frame);
+        dbgstr.draw_dbgstr_ex (gl, buf, x1, y1-(22*1.0), 1.0, col_white, col_frame);
 
         if (s_gui_prop.draw_roi_rect)
         {
+            /* score */
+            let buf = "" + (score * 100).toFixed(0);
+            dbgstr.draw_dbgstr_ex (gl, buf, x1, y1, 1.0, col_white, col_frame);
+
             /* key points */
             for (let j0 = 0; j0 < kFaceKeyNum; j0 ++)
             {

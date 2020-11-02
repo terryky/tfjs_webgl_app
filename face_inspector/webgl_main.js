@@ -8,6 +8,8 @@ let s_debug_log;
 let s_rtarget_main;
 let s_rtarget_feed;
 let s_rtarget_src;
+let s_is_dragover = false;
+let s_drop_files = [];
 
 class GuiProperty {
     constructor() {
@@ -238,6 +240,30 @@ init_gui ()
     gui.add (s_gui_prop, 'draw_pmeter');
 }
 
+
+/* ---------------------------------------------------------------- *
+ *  Drag and Drop Event
+ * ---------------------------------------------------------------- */
+function on_dragover (event)
+{
+    event.preventDefault();
+    s_is_dragover = true;
+}
+
+function on_dragleave (event)
+{
+    event.preventDefault();
+    s_is_dragover = false;
+}
+
+function on_drop (event)
+{
+    event.preventDefault();
+    s_is_dragover = false;
+    s_drop_files = event.dataTransfer.files;
+}
+
+
 /* ---------------------------------------------------------------- *
  *      M A I N    F U N C T I O N
  * ---------------------------------------------------------------- */
@@ -256,11 +282,15 @@ async function startWebGL()
     gl.clearColor (0.7, 0.7, 0.7, 1.0);
     gl.clear (gl.COLOR_BUFFER_BIT);
 
+    canvas.addEventListener ('dragover',  on_dragover);
+    canvas.addEventListener ('dragleave', on_dragleave);
+    canvas.addEventListener ('drop' ,     on_drop);
+
     init_gui ();
 
     const camtex = GLUtil.create_camera_texture (gl);
     //const camtex = GLUtil.create_video_texture (gl, "pexels.mp4");
-    const imgtex = GLUtil.create_image_texture2 (gl, "pakutaso.jpg");
+    let imgtex = GLUtil.create_image_texture2 (gl, "pakutaso.jpg");
 
     let win_w = canvas.clientWidth;
     let win_h = canvas.clientHeight;
@@ -293,6 +323,12 @@ async function startWebGL()
         prev_time_ms = cur_time_ms;
 
         stats.begin();
+
+        if (s_drop_files.length > 0)
+        {
+            imgtex = GLUtil.create_image_texture_from_file (gl, s_drop_files[0]);
+            s_drop_files = [];
+        }
 
         let src_w = imgtex.image.width;
         let src_h = imgtex.image.height;

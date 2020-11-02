@@ -38,7 +38,7 @@
   ------------------------------------------------------------------>
 <body onload="startWebGL();">
 
-    <h1>Face Inspector (SSR-Net)</h1>
+    <h1>Age Gender estimation</h1>
 
     <div id="loading">
       <div class="spinner"></div>
@@ -46,6 +46,10 @@
 
     <center>
     <canvas id="glcanvas" width="800" height="800"></canvas>
+    <br>
+    This tfjs model is converted from the pretrained model of <a href="https://github.com/yu4u/age-gender-estimation">https://github.com/yu4u/age-gender-estimation</a>.
+    <br>
+    Please note the <a href="https://data.vision.ee.ethz.ch/cvl/rrothe/imdb-wiki/">license of the dataset</a>.
     </center>
     <div id="debug_log"></div>
 </body>

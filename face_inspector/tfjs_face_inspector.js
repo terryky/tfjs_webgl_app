@@ -14,8 +14,8 @@ const kFaceKeyNum    = 6;
 let s_detect_model;
 let s_detect_tensor_input;
 
-let s_ssrnet_age_model;
-let s_ssrnet_age_tensor_input;
+let s_age_gender_model;
+let s_age_gender_tensor_input;
 
 let s_anchors = [];
 
@@ -64,8 +64,8 @@ init_tfjs_face_inspector ()
         let url = "./model/tfjs_model_face_detection_front/model.json";
         s_detect_model = await tf.loadGraphModel(url);
 
-        let url_ssrnet_age = "./model/ssrnet-age/imdb/model.json";
-        s_ssrnet_age_model = await tf.loadGraphModel(url_ssrnet_age);
+        let url_age_gender = "./model/age_gender_estimation/model.json";
+        s_age_gender_model = await tf.loadGraphModel(url_age_gender);
     }
     catch (e) {
         alert ("failed to load model");
@@ -76,7 +76,7 @@ init_tfjs_face_inspector ()
     s_detect_tensor_input  = tfjs_get_tensor_by_name (s_detect_model, 0, "input");
 
     /* face age estimation */
-    s_ssrnet_age_tensor_input = tfjs_get_tensor_by_name (s_ssrnet_age_model, 0, "input_1");
+    s_age_gender_tensor_input = tfjs_get_tensor_by_name (s_age_gender_model, 0, "input_1");
 
     let det_input_w = s_detect_tensor_input.shape[2];
     let det_input_h = s_detect_tensor_input.shape[1];
@@ -95,11 +95,11 @@ get_face_detect_input_dims ()
 }
 
 function 
-get_face_ssrnet_input_dims ()
+get_face_inspector_input_dims ()
 {
     return {
-        w: s_ssrnet_age_tensor_input.shape[2],
-        h: s_ssrnet_age_tensor_input.shape[1]
+        w: s_age_gender_tensor_input.shape[2],
+        h: s_age_gender_tensor_input.shape[1]
     };
 }
 
@@ -338,22 +338,22 @@ function exec_tfjs (img)
     return out_tensors;
 }
 
-async function invoke_pose_detect (img)
+async function invoke_pose_detect (img, config)
 {
     let out_tensors  = exec_tfjs (img);
 
-    let score_thresh = 0.75;
+    let score_thresh = config.detect_thresh;
+    let nms_enable   = config.detect_nms_enable;
+    let iou_thresh   = config.detect_iou_thresh;
     let detect_result = [];
     let region_list = [];
     let w = s_detect_tensor_input.shape[2];
     let h = s_detect_tensor_input.shape[1];
     await decode_bounds (region_list, out_tensors, score_thresh, w, h);
 
-    if (true) /* USE NMS */
+    if (nms_enable) /* USE NMS */
     {
-        let iou_thresh = 0.3;
         let region_nms_list = [];
-
         non_max_suppression (region_list, region_nms_list, iou_thresh);
         pack_detect_result (detect_result, region_nms_list);
     }
@@ -373,10 +373,10 @@ async function invoke_pose_detect (img)
 /* -------------------------------------------------- *
  * Invoke TensorFlow.js (Face age estimation)
  * -------------------------------------------------- */
-function exec_tfjs_ssrnet_age (img)
+function exec_tfjs_age_gender (img)
 {
-    let w = s_ssrnet_age_tensor_input.shape[2];
-    let h = s_ssrnet_age_tensor_input.shape[1];
+    let w = s_age_gender_tensor_input.shape[2];
+    let h = s_age_gender_tensor_input.shape[1];
 
     let out_tensors = tf.tidy(() =>
     {
@@ -392,29 +392,55 @@ function exec_tfjs_ssrnet_age (img)
         // resize, reshape
         let batched = normalized.reshape([-1, w, h, 3]);
 
-        return s_ssrnet_age_model.predict(batched);
+        return s_age_gender_model.predict(batched);
     });
 
     return out_tensors;
 }
 
 
+function
+sort_with_index (sort_array)
+{
+    let tmp_array = [];
+    for (let i = 0; i < sort_array.length; i ++)
+    {
+        tmp_array[i] = [sort_array[i], i];
+    }
+
+    tmp_array.sort (function(left, right){
+            return left[0] > right[0] ? -1 : 1;
+    });
+
+    sort_array.sort_indices = [];
+    for (let i = 0; i < sort_array.length; i ++)
+    {
+        sort_array.sort_indices[i] = tmp_array[i][1];
+    }
+    return sort_array;
+}
+
 
 async function 
-invoke_face_ssrnet_age (img)
+invoke_face_inspector (img, config)
 {
-    let out_tensors = exec_tfjs_ssrnet_age (img);
+    let out_tensors = exec_tfjs_age_gender (img);
+    let gender_ptr = await out_tensors[0].data();
+    let ages_ptr   = await out_tensors[1].data();
+    let w = s_age_gender_tensor_input.shape[2];
+    let h = s_age_gender_tensor_input.shape[1];
 
-    let out_ptr = await out_tensors.data();
-    let w = s_ssrnet_age_tensor_input.shape[2];
-    let h = s_ssrnet_age_tensor_input.shape[1];
+    sort_with_index (ages_ptr);
+    let gender = gender_ptr[0] < gender_ptr[1];
 
-    let ssrnet_age_result = [];
-    ssrnet_age_result.age = out_ptr[0];
+    let face_inspector_result = [];
+    face_inspector_result.age    = ages_ptr.sort_indices[0];
+    face_inspector_result.gender = gender;
 
     /* release the resource of output tensor */
-    out_tensors.dispose ();
+    for (let i = 0; i < out_tensors.length; i ++)
+        out_tensors[i].dispose();
 
-    return ssrnet_age_result;
+    return face_inspector_result;
 }
 

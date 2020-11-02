@@ -13,10 +13,12 @@ let s_drop_files = [];
 
 class GuiProperty {
     constructor() {
-        this.mask_alpha    = 0.9;
-        this.flip_horizontal = true;
-        this.draw_roi_rect = false;
-        this.draw_pmeter   = false;
+        this.detect_thresh     =  0.7;
+        this.detect_nms_enable = true;
+        this.detect_iou_thresh =  0.3;
+        this.flip_horizontal   = true;
+        this.draw_roi_rect     = false;
+        this.draw_pmeter       = false;
     }
 }
 const s_gui_prop = new GuiProperty();
@@ -57,9 +59,9 @@ function generate_detect_input_image (gl, texid, win_w, win_h)
 }
 
 function
-generate_ssrnet_input_image (gl, texid, win_w, win_h, detection, face_id)
+generate_face_inspector_input_image (gl, texid, win_w, win_h, detection, face_id)
 {
-    let dims = get_face_ssrnet_input_dims ();
+    let dims = get_face_inspector_input_dims ();
     let buf_rgba = new Uint8Array (dims.w * dims.h * 4);
     let buf_rgb  = new Uint8Array (dims.w * dims.h * 3);
 
@@ -105,7 +107,8 @@ render_detect_region (gl, ofstx, ofsty, texw, texh, detection, ages)
 {
     let col_white = [1.0, 1.0, 1.0, 1.0];
     let col_red   = [1.0, 0.0, 0.0, 1.0];
-    let col_frame = [0.0, 0.0, 1.0, 1.0];
+    let col_blue  = [0.0, 0.0, 1.0, 1.0];
+    let col_frame;
 
     for (let i = 0; i < detection.length; i ++)
     {
@@ -115,6 +118,19 @@ render_detect_region (gl, ofstx, ofsty, texw, texh, detection, ages)
         let x2 = region.btmright.x * texw + ofstx;
         let y2 = region.btmright.y * texh + ofsty;
         let score = region.score;
+        let buf;
+
+        /* gender */
+        if (ages[i].gender)
+        {
+            buf = "M:";
+            col_frame = col_blue;
+        }
+        else
+        {
+            buf = "F:";
+            col_frame = col_red;
+        }
 
         /* rectangle region */
         r2d.draw_2d_rect (gl, x1, y1, x2-x1, y2-y1, col_frame, 2.0);
@@ -125,30 +141,34 @@ render_detect_region (gl, ofstx, ofsty, texw, texh, detection, ages)
         //y1 += 22;
 
         /* age */
-        age = ages[i].age;
-        buf = "" + (age + 0.5).toFixed(0) + "yrs";
-        dbgstr.draw_dbgstr_ex (gl, buf, x1, y1, 1.0, col_white, col_frame);
+        let age = ages[i].age;
 
-        /* key points */
-        for (let j0 = 0; j0 < kFaceKeyNum; j0 ++)
+        buf += (age + 0.5).toFixed(0) + "yrs";
+        dbgstr.draw_dbgstr_ex (gl, buf, x1, y1-(22*1.5), 1.5, col_white, col_frame);
+
+        if (s_gui_prop.draw_roi_rect)
         {
-            let x = region.keys[j0].x * texw + ofstx;
-            let y = region.keys[j0].y * texh + ofsty;
+            /* key points */
+            for (let j0 = 0; j0 < kFaceKeyNum; j0 ++)
+            {
+                let x = region.keys[j0].x * texw + ofstx;
+                let y = region.keys[j0].y * texh + ofsty;
 
-            r = 4;
-            r2d.draw_2d_fillrect (gl, x - (r/2), y - (r/2), r, r, col_red);
-        }
+                r = 4;
+                r2d.draw_2d_fillrect (gl, x - (r/2), y - (r/2), r, r, col_frame);
+            }
 
-        /* ROI region */
-        for (let j0 = 0; j0 < 4; j0 ++)
-        {
-            let j1 = (j0 + 1) % 4;
-            let x1 = region.roi_coord[j0].x * texw + ofstx;
-            let y1 = region.roi_coord[j0].y * texh + ofsty;
-            let x2 = region.roi_coord[j1].x * texw + ofstx;
-            let y2 = region.roi_coord[j1].y * texh + ofsty;
+            /* ROI region */
+            for (let j0 = 0; j0 < 4; j0 ++)
+            {
+                let j1 = (j0 + 1) % 4;
+                let x1 = region.roi_coord[j0].x * texw + ofstx;
+                let y1 = region.roi_coord[j0].y * texh + ofsty;
+                let x2 = region.roi_coord[j1].x * texw + ofstx;
+                let y2 = region.roi_coord[j1].y * texh + ofsty;
 
-            r2d.draw_2d_line (gl, x1, y1, x2, y2, col_red, 2.0);
+                r2d.draw_2d_line (gl, x1, y1, x2, y2, col_frame, 2.0);
+            }
         }
     }
 }
@@ -234,7 +254,9 @@ init_gui ()
 {
     const gui = new dat.GUI();
 
-    gui.add (s_gui_prop, 'mask_alpha', 0.0, 1.0);
+    gui.add (s_gui_prop, 'detect_thresh', 0.0, 1.0);
+    gui.add (s_gui_prop, 'detect_nms_enable');
+    gui.add (s_gui_prop, 'detect_iou_thresh', 0.0, 1.0);
     gui.add (s_gui_prop, 'flip_horizontal');
     gui.add (s_gui_prop, 'draw_roi_rect');
     gui.add (s_gui_prop, 'draw_pmeter');
@@ -289,7 +311,7 @@ async function startWebGL()
     init_gui ();
 
     const camtex = GLUtil.create_camera_texture (gl);
-    //const camtex = GLUtil.create_video_texture (gl, "pexels.mp4");
+    //const camtex = GLUtil.create_video_texture (gl, "assets/pexels_video.mp4");
     let imgtex = GLUtil.create_image_texture2 (gl, "pakutaso.jpg");
 
     let win_w = canvas.clientWidth;
@@ -350,7 +372,7 @@ async function startWebGL()
         let feed_image = generate_detect_input_image (gl, texid, win_w, win_h);
 
         let time_invoke0_start = performance.now();
-        let detections = await invoke_pose_detect (feed_image);
+        let detections = await invoke_pose_detect (feed_image, s_gui_prop);
         let time_invoke0 = performance.now() - time_invoke0_start;
 
         /* --------------------------------------- *
@@ -360,10 +382,10 @@ async function startWebGL()
         let time_invoke1 = 0;
         for (let face_id = 0; face_id < detections.length; face_id ++)
         {
-            let feed_image = generate_ssrnet_input_image (gl, texid, win_w, win_h, detections, face_id);
+            let feed_image = generate_face_inspector_input_image (gl, texid, win_w, win_h, detections, face_id);
 
             let time_invoke1_start = performance.now();
-            ages[face_id] = await invoke_face_ssrnet_age (feed_image);
+            ages[face_id] = await invoke_face_inspector (feed_image, s_gui_prop);
             time_invoke1 += performance.now() - time_invoke1_start;
         }
 

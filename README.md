@@ -33,6 +33,10 @@ Live demo is [here](https://terryky.github.io/tfjs_webgl_app/dense_depth).<br>
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/dbface).<br>
 [<img src="dbface/dbface.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/dbface)
 
+## Age and Gender estimation
+Live demo is [here](https://terryky.github.io/tfjs_webgl_app/face_inspector).<br>
+[<img src="face_inspector/face_inspector.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/face_inspector)
+
 ## Classification
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/classification).<br>
 [<img src="classification/classification.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/classification)
@@ -45,4 +49,5 @@ Live demo is [here](https://terryky.github.io/tfjs_webgl_app/classification).<br
 - https://github.com/MaybeShewill-CV/bisenetv2-tensorflow
 - https://github.com/ialhashim/DenseDepth
 - https://github.com/dlunion/DBFace
+- https://github.com/yu4u/age-gender-estimation
 - https://github.com/PINTO0309/PINTO_model_zoo

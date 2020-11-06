@@ -9,9 +9,9 @@ Live demo is [here](https://terryky.github.io/tfjs_webgl_app/handpose).<br>
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/pose_estimation_3d).<br>
 [<img src="pose_estimation_3d/pose_estimation_3d.gif" width=400>](https://terryky.github.io/tfjs_webgl_app/pose_estimation_3d)
 
-## Facemesh (replace faces)
-Live demo is [here](https://terryky.github.io/tfjs_webgl_app/facemesh).<br>
-[<img src="facemesh/facemesh.gif" width=400>](https://terryky.github.io/tfjs_webgl_app/facemesh)
+## FaceSwap (face-landmarks-detection)
+Live demo is [here](https://terryky.github.io/tfjs_webgl_app/face_landmark).<br>
+[<img src="face_landmark/facemesh.gif" width=400>](https://terryky.github.io/tfjs_webgl_app/face_landmark)
 
 ## Blazepose (upper_body)
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/blazepose).<br>

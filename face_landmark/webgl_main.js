@@ -151,16 +151,13 @@ render_2d_scene (gl, texid, face_predictions, tex_w, tex_h,
         r2d.draw_2d_texture (gl, texid, tx, ty, tw, th, 0)
         r2d.draw_2d_rect (gl, tx, ty, tw, th, [1.0, 1.0, 1.0, 1.0], 3.0);
 
-        if (mask_predictions.length > 0)
+        const mask_keypoints = mask_predictions[0].scaledMesh;
+        for (let i = 0; i < mask_keypoints.length; i++)
         {
-            const mask_keypoints = mask_predictions[0].scaledMesh;
-            for (let i = 0; i < mask_keypoints.length; i++)
-            {
-                let p = mask_keypoints[i];
-                x = p[0] / masktex.image.width  * tw + tx;
-                y = p[1] / masktex.image.height * th + ty;
-                r2d.draw_2d_fillrect (gl, x - radius/2, y - radius/2, radius,  radius, color);
-            }
+            let p = mask_keypoints[i];
+            x = p[0] / masktex.image.width  * tw + tx;
+            y = p[1] / masktex.image.height * th + ty;
+            r2d.draw_2d_fillrect (gl, x - radius/2, y - radius/2, radius,  radius, color);
         }
     }
 }

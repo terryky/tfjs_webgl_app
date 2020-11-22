@@ -49,6 +49,7 @@ GLUtil.create_image_texture = function (gl, url)
 GLUtil.create_image_texture2 = function (gl, url)
 {
     let image_tex = {};
+    image_tex.ready = false;
     let texid = GLUtil.create_texture (gl);
     let teximage = new Image();
 
@@ -57,6 +58,7 @@ GLUtil.create_image_texture2 = function (gl, url)
         gl.bindTexture(gl.TEXTURE_2D, texid);
         gl.texImage2D (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, teximage);
         gl.generateMipmap (gl.TEXTURE_2D);
+        image_tex.ready = true;
     }
     teximage.src = url;
 
@@ -68,6 +70,7 @@ GLUtil.create_image_texture2 = function (gl, url)
 GLUtil.create_image_texture_from_file = function (gl, url)
 {
     let image_tex = {};
+    image_tex.ready = false;
     let texid = GLUtil.create_texture (gl);
     let teximage = new Image();
     let reader = new FileReader();
@@ -77,6 +80,7 @@ GLUtil.create_image_texture_from_file = function (gl, url)
         gl.bindTexture(gl.TEXTURE_2D, texid);
         gl.texImage2D (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, teximage);
         gl.generateMipmap (gl.TEXTURE_2D);
+        image_tex.ready = true;
     }
 
     reader.onload = function (event)
@@ -89,6 +93,11 @@ GLUtil.create_image_texture_from_file = function (gl, url)
     image_tex.texid = texid;
     image_tex.image = teximage;
     return image_tex;
+}
+
+GLUtil.is_image_texture_ready = function (image_tex)
+{
+    return image_tex.ready;
 }
 
 /* ---------------------------------------------------------------- *

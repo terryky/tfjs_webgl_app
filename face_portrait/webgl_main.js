@@ -376,6 +376,12 @@ function on_drop (event)
 }
 
 
+function on_webglcontextlost (event)
+{
+    //event.preventDefault();
+    alert ("[ERROR]\nCONTEXT_LOST_WEBGL has occurred. \norz...");
+}
+
 /* ---------------------------------------------------------------- *
  *      M A I N    F U N C T I O N
  * ---------------------------------------------------------------- */
@@ -397,6 +403,7 @@ async function startWebGL()
     canvas.addEventListener ('dragover',  on_dragover);
     canvas.addEventListener ('dragleave', on_dragleave);
     canvas.addEventListener ('drop' ,     on_drop);
+    canvas.addEventListener ('webglcontextlost', on_webglcontextlost);
 
     init_gui ();
 

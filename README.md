@@ -13,6 +13,10 @@ Live demo is [here](https://terryky.github.io/tfjs_webgl_app/pose_estimation_3d)
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/face_landmark).<br>
 [<img src="face_landmark/facemesh.gif" width=400>](https://terryky.github.io/tfjs_webgl_app/face_landmark)
 
+## U^2-Net portrait drawing
+Live demo is [here](https://terryky.github.io/tfjs_webgl_app/face_portrait).(not stable)<br>
+[<img src="face_portrait/face_portrait.gif" width=400>](https://terryky.github.io/tfjs_webgl_app/face_portrait)
+
 ## Blazepose (upper_body)
 Live demo is [here](https://terryky.github.io/tfjs_webgl_app/blazepose).<br>
 [<img src="blazepose/blazepose.gif" width=300>](https://terryky.github.io/tfjs_webgl_app/blazepose)
@@ -45,6 +49,7 @@ Live demo is [here](https://terryky.github.io/tfjs_webgl_app/classification).<br
 # Acknowledgements
 - https://github.com/tensorflow/tfjs-models
 - https://github.com/google/mediapipe
+- https://github.com/PINTO0309/PINTO_model_zoo/tree/master/061_U-2-Net/20_portrait_model
 - https://github.com/openvinotoolkit/open_model_zoo/tree/master/demos/python_demos/human_pose_estimation_3d_demo
 - https://github.com/MaybeShewill-CV/bisenetv2-tensorflow
 - https://github.com/ialhashim/DenseDepth
